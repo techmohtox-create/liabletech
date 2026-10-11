@@ -2,6 +2,7 @@ services:
   bff:
     build: ../bff
     restart: unless-stopped
+    env_file: .env
     environment:
       LIABLETECH_CORS_ALLOWED_ORIGINS: https://liabletech.com,https://www.liabletech.com
       SERVER_FORWARD_HEADERS_STRATEGY: native

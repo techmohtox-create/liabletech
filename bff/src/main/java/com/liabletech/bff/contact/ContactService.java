@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -13,21 +14,36 @@ public class ContactService {
 
 	private static final Logger log = LoggerFactory.getLogger(ContactService.class);
 
+	private final JdbcClient jdbcClient;
+
+	public ContactService(JdbcClient jdbcClient) {
+		this.jdbcClient = jdbcClient;
+	}
+
 	public String submit(ContactRequest request) {
 		String reference = "LT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
 		if (StringUtils.hasText(request.website())) {
 			log.debug("Dropped contact enquiry {} (honeypot filled)", reference);
 			return reference;
 		}
-		// TODO: deliver to the sales inbox / CRM. Until then enquiries only exist in this log.
-		log.info("Contact enquiry {} from {} <{}> company={} service={} message={}", reference,
-				singleLine(request.name()), singleLine(request.email()), singleLine(request.company()),
-				singleLine(request.service()), singleLine(request.message()));
+		jdbcClient
+			.sql("""
+					INSERT INTO contact_enquiry (reference, name, email, company, service, message)
+					VALUES (:reference, :name, :email, :company, :service, :message)
+					""")
+			.param("reference", reference)
+			.param("name", request.name().trim())
+			.param("email", request.email().trim())
+			.param("company", trimToNull(request.company()))
+			.param("service", trimToNull(request.service()))
+			.param("message", request.message().trim())
+			.update();
+		log.info("Stored contact enquiry {}", reference);
 		return reference;
 	}
 
-	private static String singleLine(String value) {
-		return value == null ? "" : value.replaceAll("[\\r\\n]+", " ").trim();
+	private static String trimToNull(String value) {
+		return StringUtils.hasText(value) ? value.trim() : null;
 	}
 
 }
