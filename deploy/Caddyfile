@@ -1,0 +1,6 @@
+# Caddy obtains and renews the Let's Encrypt certificate on its own once
+# the api A record points at this VM and ports 80/443 are reachable.
+api.liabletech.com {
+	encode gzip
+	reverse_proxy bff:8080
+}

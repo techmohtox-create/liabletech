@@ -1,0 +1,104 @@
+{
+  "hero": {
+    "eyebrow": "IT services & engineering",
+    "headline": "IT services you can hold us to.",
+    "subheadline": "Liable Tech designs, builds and runs the software, cloud and security your business depends on, with one team accountable for the outcome from the first workshop to production support.",
+    "primaryCta": { "label": "Start a project", "target": "#contact" },
+    "secondaryCta": { "label": "Explore services", "target": "#services" }
+  },
+  "services": [
+    {
+      "id": "software",
+      "icon": "code",
+      "title": "Custom Software Development",
+      "summary": "Web, mobile and backend systems built around how your business actually works.",
+      "capabilities": ["Web & mobile applications", "APIs & integrations", "Legacy modernisation"]
+    },
+    {
+      "id": "cloud",
+      "icon": "cloud",
+      "title": "Cloud & DevOps",
+      "summary": "Move to the cloud, automate delivery and keep the monthly bill under control.",
+      "capabilities": ["Cloud migration", "CI/CD & infrastructure as code", "Cost & reliability reviews"]
+    },
+    {
+      "id": "data",
+      "icon": "data",
+      "title": "Data & AI",
+      "summary": "Turn scattered data into dashboards, forecasts and automation your teams trust.",
+      "capabilities": ["Data platforms & pipelines", "Analytics & reporting", "AI assistants & automation"]
+    },
+    {
+      "id": "security",
+      "icon": "shield",
+      "title": "Cybersecurity",
+      "summary": "Find the gaps before someone else does, then close them and keep them closed.",
+      "capabilities": ["Security assessments", "Identity & access management", "Compliance readiness"]
+    },
+    {
+      "id": "managed",
+      "icon": "support",
+      "title": "Managed IT Support",
+      "summary": "Monitoring, patching and a help desk that answers, so your people can keep working.",
+      "capabilities": ["Monitoring & incident response", "Help desk", "Backup & disaster recovery"]
+    },
+    {
+      "id": "consulting",
+      "icon": "compass",
+      "title": "IT Consulting",
+      "summary": "An honest view of where your technology stands and a roadmap you can afford.",
+      "capabilities": ["Technology audits", "Architecture & roadmaps", "Vendor selection"]
+    }
+  ],
+  "principles": [
+    {
+      "title": "One accountable team",
+      "description": "The people who scope your project are the people who deliver and support it. No hand-offs, no finger-pointing."
+    },
+    {
+      "title": "Plain-language commitments",
+      "description": "Scope, timeline and cost are written down before work starts, and you hear about a risk the day we see it."
+    },
+    {
+      "title": "Security by default",
+      "description": "Access control, backups and patching are part of every engagement, not a line item added after an incident."
+    },
+    {
+      "title": "Built to hand over",
+      "description": "Documented code, infrastructure you own and no lock-in. You can take the work in-house whenever you choose."
+    }
+  ],
+  "process": [
+    {
+      "title": "Discover",
+      "outcome": "Goals, constraints and risks mapped",
+      "description": "We sit down with the people who use and run your systems to understand the problem before proposing a solution."
+    },
+    {
+      "title": "Plan",
+      "outcome": "Scope, timeline and estimate agreed",
+      "description": "You get a written plan with milestones and costs, so you know what you are getting and when."
+    },
+    {
+      "title": "Build",
+      "outcome": "Working software every sprint",
+      "description": "Short iterations with a demo at the end of each one. You see progress and steer priorities throughout."
+    },
+    {
+      "title": "Run",
+      "outcome": "Monitored, supported, improved",
+      "description": "After launch we monitor, support and keep improving, or hand over cleanly to your own team."
+    }
+  ],
+  "technologies": [
+    { "category": "Frontend", "items": ["Angular", "React", "TypeScript"] },
+    { "category": "Backend", "items": ["Java", "Spring Boot", "Node.js", ".NET"] },
+    { "category": "Cloud", "items": ["AWS", "Azure", "Google Cloud", "Kubernetes", "Terraform"] },
+    { "category": "Data", "items": ["PostgreSQL", "Kafka", "Python", "Power BI"] }
+  ],
+  "contact": {
+    "heading": "Tell us what you need fixed, built or run.",
+    "blurb": "Send a few lines about your project and we will reply within one business day with next steps.",
+    "email": "hello@liabletech.com"
+  }
+}
