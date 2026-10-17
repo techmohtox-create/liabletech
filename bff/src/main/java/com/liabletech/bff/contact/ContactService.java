@@ -9,6 +9,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.liabletech.bff.notify.LeadNotifier;
+
 @Service
 public class ContactService {
 
@@ -16,8 +18,11 @@ public class ContactService {
 
 	private final JdbcClient jdbcClient;
 
-	public ContactService(JdbcClient jdbcClient) {
+	private final LeadNotifier notifier;
+
+	public ContactService(JdbcClient jdbcClient, LeadNotifier notifier) {
 		this.jdbcClient = jdbcClient;
+		this.notifier = notifier;
 	}
 
 	public String submit(ContactRequest request) {
@@ -43,6 +48,7 @@ public class ContactService {
 			.param("source", trimToNull(request.source()))
 			.update();
 		log.info("Stored contact enquiry {}", reference);
+		notifier.enquiryReceived(reference, request);
 		return reference;
 	}
 

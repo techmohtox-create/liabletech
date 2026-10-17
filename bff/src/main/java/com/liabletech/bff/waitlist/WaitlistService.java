@@ -9,6 +9,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.liabletech.bff.notify.LeadNotifier;
+
 @Service
 public class WaitlistService {
 
@@ -16,8 +18,11 @@ public class WaitlistService {
 
 	private final JdbcClient jdbcClient;
 
-	public WaitlistService(JdbcClient jdbcClient) {
+	private final LeadNotifier notifier;
+
+	public WaitlistService(JdbcClient jdbcClient, LeadNotifier notifier) {
 		this.jdbcClient = jdbcClient;
+		this.notifier = notifier;
 	}
 
 	/** Adds the email to the product's waitlist once; signing up again returns the original reference. */
@@ -48,6 +53,7 @@ public class WaitlistService {
 			.param("company", trimToNull(request.company()))
 			.update();
 		log.info("Stored waitlist sign-up {} for {}", reference, request.product());
+		notifier.waitlistJoined(reference, request);
 		return reference;
 	}
 

@@ -41,7 +41,7 @@ type Status = 'idle' | 'sending' | 'done' | 'error';
           <input [id]="id() + '-website'" formControlName="website" tabindex="-1" autocomplete="off" />
         </div>
         @if (status() === 'error') {
-          <div class="alert alert-error" role="alert">That didn't go through. Please try again, or email hello&#64;liabletech.com.</div>
+          <div class="alert alert-error" role="alert">That didn't go through. Please try again, or email contact&#64;liabletech.com.</div>
         }
         <button class="btn btn-primary" type="submit" [disabled]="status() === 'sending'">
           {{ status() === 'sending' ? 'Joining…' : 'Join the waitlist' }}

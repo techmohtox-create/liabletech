@@ -2,7 +2,7 @@
 export const SITE = {
   name: 'LiableTech',
   url: 'https://liabletech.com',
-  email: 'hello@liabletech.com',
+  email: 'contact@liabletech.com',
   tagline: 'Reliable by design.',
   positioning:
     'An AI-enabled technology partner that turns complex business problems into reliable digital solutions.',
