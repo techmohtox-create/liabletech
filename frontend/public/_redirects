@@ -9,10 +9,6 @@
 /ecommerce/admin/*        /ecommerce/             200
 
 # Common alternative addresses
-/services/                /services              301
-/products/                /products              301
-/about/                   /about                 301
-/contact/                 /contact               301
 /approach                 /about                 301
 /ecommerce-platform       /products/bazaarflow   301
 /bazaarflow               /products/bazaarflow   301
