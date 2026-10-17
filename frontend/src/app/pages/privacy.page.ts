@@ -3,10 +3,11 @@ import { RouterLink } from '@angular/router';
 
 import { Seo } from '../core/seo.service';
 import { SITE } from '../core/site';
+import { EmailText } from '../shared/email-text';
 
 @Component({
   selector: 'app-privacy-page',
-  imports: [RouterLink],
+  imports: [RouterLink, EmailText],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="page-hero">
@@ -20,7 +21,7 @@ import { SITE } from '../core/site';
       <div class="container prose">
         <h2>Who we are</h2>
         <p>LiableTech ("we") runs liabletech.com. For any privacy question or request, write to
-          <a [href]="'mailto:' + email">{{ email }}</a>.</p>
+          <a [href]="'mailto:' + email"><app-email-text /></a>.</p>
 
         <h2>What we collect</h2>
         <ul>
@@ -50,7 +51,7 @@ import { SITE } from '../core/site';
 
         <h2>Your rights</h2>
         <p>You can ask us to show, correct or delete the personal data we hold about you, or withdraw consent to being
-          contacted, by emailing <a [href]="'mailto:' + email">{{ email }}</a>. We respond within 30 days. If you are
+          contacted, by emailing <a [href]="'mailto:' + email"><app-email-text /></a>. We respond within 30 days. If you are
           not satisfied with our response, you may raise a grievance with the Data Protection Board of India.</p>
 
         <h2>Changes</h2>

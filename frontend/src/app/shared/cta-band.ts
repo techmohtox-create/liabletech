@@ -2,12 +2,13 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { SITE } from '../core/site';
+import { EmailText } from './email-text';
 import { Icon } from './icon';
 
 /** The closing call to action used at the bottom of every page. */
 @Component({
   selector: 'app-cta-band',
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, EmailText],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="section-navy band">
@@ -22,7 +23,7 @@ import { Icon } from './icon';
             {{ cta() }} <app-icon class="icon-move" name="arrow" [size]="18" />
           </a>
           <a class="btn btn-outline-light btn-lg" [href]="'mailto:' + email">
-            <app-icon name="mail" [size]="18" /> {{ email }}
+            <app-icon name="mail" [size]="18" /> <app-email-text />
           </a>
           <p class="note">{{ promise }} Free, no-obligation discovery call.</p>
         </div>

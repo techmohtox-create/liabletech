@@ -7,13 +7,14 @@ import { BUDGETS, NEEDS, STAGES, TIMELINES } from '../core/content';
 import { leadSource, LeadService } from '../core/lead.service';
 import { Seo } from '../core/seo.service';
 import { SITE } from '../core/site';
+import { EmailText } from '../shared/email-text';
 import { Icon } from '../shared/icon';
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
 
 @Component({
   selector: 'app-contact-page',
-  imports: [ReactiveFormsModule, RouterLink, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Icon, EmailText],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './contact.page.html',
   styleUrl: './contact.page.scss',

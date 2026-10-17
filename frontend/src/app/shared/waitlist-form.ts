@@ -4,13 +4,14 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { LeadService } from '../core/lead.service';
+import { EmailText } from './email-text';
 
 type Status = 'idle' | 'sending' | 'done' | 'error';
 
 /** Early-access sign-up for products that are not released yet. */
 @Component({
   selector: 'app-waitlist-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, EmailText],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (status() === 'done') {
@@ -41,7 +42,7 @@ type Status = 'idle' | 'sending' | 'done' | 'error';
           <input [id]="id() + '-website'" formControlName="website" tabindex="-1" autocomplete="off" />
         </div>
         @if (status() === 'error') {
-          <div class="alert alert-error" role="alert">That didn't go through. Please try again, or email contact&#64;liabletech.com.</div>
+          <div class="alert alert-error" role="alert">That didn't go through. Please try again, or email <app-email-text />.</div>
         }
         <button class="btn btn-primary" type="submit" [disabled]="status() === 'sending'">
           {{ status() === 'sending' ? 'Joining…' : 'Join the waitlist' }}

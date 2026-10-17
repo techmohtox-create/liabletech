@@ -112,7 +112,7 @@
               </div>
               @if (status() === 'error' && !serverErrors()['name'] && !serverErrors()['email'] && !serverErrors()['message']) {
                 <div class="alert alert-error" role="alert">
-                  We couldn't send that just now. Please try again, or email <a [href]="'mailto:' + email">{{ email }}</a>.
+                  We couldn't send that just now. Please try again, or email <a [href]="'mailto:' + email"><app-email-text /></a>.
                 </div>
               }
               <button class="btn btn-primary btn-lg submit" type="submit" [disabled]="status() === 'sending'">
@@ -149,7 +149,7 @@
       <div class="card">
         <h3>Prefer email?</h3>
         <p class="muted">Write to us directly, and mention if you'd like an NDA first.</p>
-        <a class="mail" [href]="'mailto:' + email"><app-icon name="mail" [size]="18" /> {{ email }}</a>
+        <a class="mail" [href]="'mailto:' + email"><app-icon name="mail" [size]="18" /> <app-email-text /></a>
       </div>
       <div class="card demo">
         <span class="badge badge-live">Live demo</span>

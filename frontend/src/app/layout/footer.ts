@@ -3,10 +3,11 @@ import { RouterLink } from '@angular/router';
 
 import { PRODUCTS, SERVICES } from '../core/content';
 import { SITE } from '../core/site';
+import { EmailText } from '../shared/email-text';
 
 @Component({
   selector: 'app-footer',
-  imports: [RouterLink],
+  imports: [RouterLink, EmailText],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <footer class="site-footer">
@@ -15,7 +16,7 @@ import { SITE } from '../core/site';
           <img src="/brand/liabletech-logo-primary-dark.svg" alt="LiableTech" width="150" height="29" loading="lazy" />
           <p class="tagline">{{ tagline }}</p>
           <p class="pos">{{ positioning }}</p>
-          <a class="mail" [href]="'mailto:' + email">{{ email }}</a>
+          <a class="mail" [href]="'mailto:' + email"><app-email-text /></a>
         </div>
         <nav aria-label="Services">
           <h2>Services</h2>
