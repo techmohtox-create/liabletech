@@ -1,0 +1,227 @@
+<!-- 1. Hero: one outcome-led promise, one primary action -->
+<section class="hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">AI automation · Cloud · Software engineering</span>
+      <h1>Build smarter.<br />Automate better.<br /><span class="hl">Scale with confidence.</span></h1>
+      <p class="lead">
+        LiableTech helps businesses build reliable software, modernise cloud applications and use AI automation to
+        solve real operational problems, with one team accountable from the first workshop to production support.
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary btn-lg" routerLink="/contact">
+          Discuss your project <app-icon class="icon-move" name="arrow" [size]="18" />
+        </a>
+        <a class="btn btn-ghost btn-lg" routerLink="/products/bazaarflow">See a live product</a>
+      </div>
+      <ul class="assurances">
+        <li><app-icon name="check" [size]="16" /> Written scope before work starts</li>
+        <li><app-icon name="check" [size]="16" /> You own the code</li>
+        <li><app-icon name="check" [size]="16" /> Reply within one business day</li>
+      </ul>
+    </div>
+    <div class="hero-art">
+      <app-hero-art />
+    </div>
+  </div>
+  <div class="container">
+    <ul class="stack" aria-label="Technologies we work with">
+      @for (item of stack; track item) {
+        <li>{{ item }}</li>
+      }
+    </ul>
+  </div>
+</section>
+
+<!-- 2. Proof: a product people can try right now -->
+<section class="proof">
+  <div class="container">
+    <div class="proof-card" data-reveal>
+      <div class="proof-copy">
+        <span class="badge badge-live">Live demo</span>
+        <h2>Don't take our word for it. Try what we build.</h2>
+        <p>
+          BazaarFlow is a complete e-commerce platform we designed and built: storefront, order desk, inventory,
+          dispatch and GST invoicing. It runs live, with sample data, and you can sign in as any role.
+        </p>
+        <div class="btn-row">
+          <a class="btn btn-light btn-lg" href="/ecommerce/">Open the live demo <app-icon name="external" [size]="18" /></a>
+          <a class="btn btn-outline-light btn-lg" routerLink="/products/bazaarflow">What's inside</a>
+        </div>
+      </div>
+      <div class="proof-shot" aria-hidden="true">
+        <div class="win">
+          <div class="win-bar"><i></i><i></i><i></i><span>liabletech.com/ecommerce</span></div>
+          <div class="win-body">
+            <div class="kpis">
+              <div><small>Orders today</small><b></b></div>
+              <div><small>Revenue</small><b></b></div>
+              <div><small>Low stock</small><b></b></div>
+            </div>
+            <div class="chart">
+              @for (h of [38, 52, 44, 66, 58, 74, 62, 86, 78, 92]; track $index) {
+                <span [style.height.%]="h"></span>
+              }
+            </div>
+            <div class="rows"><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Qualify: let visitors pick their problem -->
+<section class="section">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Start with the problem</span>
+      <h2>What is slowing your business down?</h2>
+      <p class="lead">Pick the one that sounds most familiar. We'll show you where we would start.</p>
+    </div>
+    <div class="picker" data-reveal>
+      <div class="picker-options" role="tablist" aria-label="Business problems">
+        @for (p of problems; track p.id) {
+          <button type="button" role="tab" class="pick" [class.active]="p.id === problemId()"
+                  [attr.aria-selected]="p.id === problemId()" (click)="problemId.set(p.id)">
+            {{ p.label }}
+          </button>
+        }
+      </div>
+      <div class="picker-answer" role="tabpanel">
+        <p class="answer-label">Where we would start</p>
+        <p class="answer">{{ problem().answer }}</p>
+        <div class="btn-row">
+          <a class="btn btn-primary" routerLink="/contact" [queryParams]="{ interest: problemTarget().interest }">
+            Talk to us about this <app-icon class="icon-move" name="arrow" [size]="18" />
+          </a>
+          <a class="text-link" [routerLink]="problemTarget().link">{{ problemTarget().label }} <app-icon name="arrow" [size]="16" /></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. Services -->
+<section class="section section-mist">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Services</span>
+      <h2>Everything your technology needs, under one roof</h2>
+      <p class="lead">Engage us for a single project or as your long-term technology partner. Either way, one team owns the result.</p>
+    </div>
+    <div class="grid grid-3">
+      @for (s of services; track s.slug) {
+        <a class="card service" [routerLink]="['/services', s.slug]" data-reveal>
+          <span class="icon-tile"><app-icon [name]="s.icon" /></span>
+          <h3>{{ s.name }}</h3>
+          <p>{{ s.short }}</p>
+          <span class="text-link">Learn more <app-icon name="arrow" [size]="16" /></span>
+        </a>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- 5. Products -->
+<section class="section">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Products</span>
+      <h2>Ready-made platforms, customised to how you work</h2>
+      <p class="lead">Start from a proven product instead of a blank page. Faster to launch, less risky, and still tailored to your process.</p>
+    </div>
+    <div class="grid grid-3">
+      @for (p of products; track p.slug) {
+        <a class="card product" [class.live]="p.status === 'live'" [routerLink]="['/products', p.slug]" data-reveal>
+          <div class="product-top">
+            <span class="product-icon"><app-icon [name]="productIcon(p.slug)" [size]="26" /><i></i></span>
+            <span class="badge" [class.badge-live]="p.status === 'live'" [class.badge-soon]="p.status === 'soon'">
+              {{ p.status === 'live' ? 'Live demo' : 'Coming soon' }}
+            </span>
+          </div>
+          <h3>{{ p.name }}</h3>
+          <p class="cat">{{ p.category }}</p>
+          <p>{{ p.tagline }}</p>
+          <span class="text-link">{{ p.status === 'live' ? 'Explore and try the demo' : 'Join the waitlist' }}
+            <app-icon name="arrow" [size]="16" /></span>
+        </a>
+      }
+    </div>
+  </div>
+</section>
+
+<!-- 6. Process -->
+<section class="section section-navy process">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">How we work</span>
+      <h2>A clear path from first call to running system</h2>
+      <p class="lead">No guesswork about what happens next. Every engagement follows the same four steps.</p>
+    </div>
+    <div class="steps" data-reveal>
+      <div class="step-tabs" role="tablist" aria-label="Delivery process">
+        @for (p of process; track p.title; let i = $index) {
+          <button type="button" role="tab" class="step-tab" [class.active]="i === step()" [class.done]="i < step()"
+                  [attr.aria-selected]="i === step()" (click)="step.set(i)" (mouseenter)="step.set(i)">
+            <span class="num">0{{ i + 1 }}</span>
+            <span class="t">{{ p.title }}</span>
+          </button>
+        }
+        <span class="progress" [style.width.%]="(step() + 1) * 25"></span>
+      </div>
+      <div class="step-panel" role="tabpanel">
+        <h3>{{ process[step()].outcome }}</h3>
+        <p>{{ process[step()].description }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. Why us and ways to work together -->
+<section class="section">
+  <div class="container why">
+    <div data-reveal>
+      <span class="eyebrow">Why LiableTech</span>
+      <h2>Reliable by design</h2>
+      <p class="lead">We are named for accountability. These are the commitments behind it.</p>
+      <div class="principles">
+        @for (p of principles; track p.title) {
+          <div class="principle">
+            <span class="key" aria-hidden="true"></span>
+            <div>
+              <h3>{{ p.title }}</h3>
+              <p>{{ p.description }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="models" data-reveal>
+      <h3 class="models-title">Ways to work with us</h3>
+      @for (m of engagements; track m.title) {
+        <div class="model">
+          <h4>{{ m.title }}</h4>
+          <p>{{ m.description }}</p>
+          <span class="best">Best for: {{ m.best }}</span>
+        </div>
+      }
+      <a class="btn btn-primary" routerLink="/contact">Get a written estimate</a>
+    </div>
+  </div>
+</section>
+
+<!-- 8. FAQs -->
+<section class="section section-mist">
+  <div class="container faq-wrap">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Questions</span>
+      <h2>Before you get in touch</h2>
+      <p class="lead">Straight answers to what people usually ask first. Anything else, just ask.</p>
+      <a class="text-link" routerLink="/contact">Ask us directly <app-icon name="arrow" [size]="16" /></a>
+    </div>
+    <app-faq [items]="faqs" />
+  </div>
+</section>
+
+<app-cta-band />

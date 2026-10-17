@@ -10,6 +10,12 @@ public record ContactRequest(
 		@Size(max = 150) String company,
 		@Size(max = 100) String service,
 		@NotBlank(message = "Please describe what you need") @Size(min = 10, max = 2000, message = "Message must be between 10 and 2000 characters") String message,
+		// Optional answers from the project scoper on the contact page.
+		@Size(max = 60) String stage,
+		@Size(max = 60) String timeline,
+		@Size(max = 60) String budget,
+		// Page and campaign the visitor came from.
+		@Size(max = 200) String source,
 		// Honeypot: hidden in the form, so only bots fill it in.
 		String website) {
 }

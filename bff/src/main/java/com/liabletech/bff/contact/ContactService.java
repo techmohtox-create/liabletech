@@ -28,8 +28,8 @@ public class ContactService {
 		}
 		jdbcClient
 			.sql("""
-					INSERT INTO contact_enquiry (reference, name, email, company, service, message)
-					VALUES (:reference, :name, :email, :company, :service, :message)
+					INSERT INTO contact_enquiry (reference, name, email, company, service, message, stage, timeline, budget, source)
+					VALUES (:reference, :name, :email, :company, :service, :message, :stage, :timeline, :budget, :source)
 					""")
 			.param("reference", reference)
 			.param("name", request.name().trim())
@@ -37,6 +37,10 @@ public class ContactService {
 			.param("company", trimToNull(request.company()))
 			.param("service", trimToNull(request.service()))
 			.param("message", request.message().trim())
+			.param("stage", trimToNull(request.stage()))
+			.param("timeline", trimToNull(request.timeline()))
+			.param("budget", trimToNull(request.budget()))
+			.param("source", trimToNull(request.source()))
 			.update();
 		log.info("Stored contact enquiry {}", reference);
 		return reference;

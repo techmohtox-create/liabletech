@@ -1,0 +1,150 @@
+<section class="page-hero bf-hero">
+  <div class="container hero">
+    <div>
+      <ol class="crumbs">
+        <li><a routerLink="/">Home</a></li><li><a routerLink="/products">Products</a></li><li>BazaarFlow</li>
+      </ol>
+      <span class="badge badge-live">Live demo</span>
+      <h1>BazaarFlow: sell online and run fulfilment from one platform</h1>
+      <p class="lead">
+        A storefront your customers enjoy and the back office your team needs: orders, inventory, dispatch, payments
+        and GST invoicing in one system, built for how Indian brands and distributors actually sell.
+      </p>
+      <div class="btn-row">
+        <a class="btn btn-primary btn-lg" href="/ecommerce/">Open the live demo <app-icon name="external" [size]="18" /></a>
+        <a class="btn btn-ghost btn-lg" routerLink="/contact" [queryParams]="{ interest: 'bazaarflow' }">Book a walkthrough</a>
+      </div>
+      <p class="fine">No sign-up needed. Sample data, reset every night.</p>
+    </div>
+    <div class="logins" data-reveal>
+      <p class="logins-title"><app-icon name="grid" [size]="18" /> Try any role in the demo</p>
+      <ul>
+        @for (l of logins; track l.email) {
+          <li>
+            <span class="role">{{ l.role }}</span>
+            <code>{{ l.email }}</code>
+            <button type="button" class="copy" (click)="copy(l.email, l.email)" [attr.aria-label]="'Copy ' + l.email">
+              {{ copied() === l.email ? 'Copied' : 'Copy' }}
+            </button>
+          </li>
+        }
+      </ul>
+      <p class="pw">Password: <code>demo&#64;123</code> for staff, <code>farmer&#64;123</code> for the customer.
+        The demo's sign-in screen also has one-click buttons.</p>
+      <a class="btn btn-dark full" href="/ecommerce/login">Go to the demo sign-in <app-icon name="arrow" [size]="16" /></a>
+    </div>
+  </div>
+</section>
+
+<section class="facts">
+  <div class="container fact-row">
+    @for (f of facts; track f.v) {
+      <div class="fact"><b>{{ f.k }}</b><span>{{ f.v }}</span></div>
+    }
+  </div>
+</section>
+
+<!-- Module explorer -->
+<section class="section">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">Inside BazaarFlow</span>
+      <h2>Everything from the first click to the GST invoice</h2>
+      <p class="lead">Explore each part, then open it in the live demo.</p>
+    </div>
+    <div class="explorer" data-reveal>
+      <div class="tabs" role="tablist" aria-label="BazaarFlow modules">
+        @for (m of modules; track m.id) {
+          <button type="button" role="tab" class="tab" [class.active]="m.id === moduleId()"
+                  [attr.aria-selected]="m.id === moduleId()" (click)="moduleId.set(m.id)">{{ m.label }}</button>
+        }
+      </div>
+      <div class="panel" role="tabpanel">
+        <div>
+          <h3>{{ module().title }}</h3>
+          <ul class="check-list">
+            @for (p of module().points; track p) {
+              <li><span class="tick"><app-icon name="check" [size]="14" /></span><span>{{ p }}</span></li>
+            }
+          </ul>
+          <a class="btn btn-primary" [href]="module().demoPath">{{ module().demoLabel }} <app-icon name="external" [size]="16" /></a>
+        </div>
+        <div class="screen" aria-hidden="true">
+          <div class="screen-bar"><i></i><i></i><i></i><span>{{ module().label }}</span></div>
+          <div class="screen-body" [attr.data-mod]="module().id">
+            <div class="side"><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="main">
+              <div class="tiles"><i></i><i></i><i></i></div>
+              <div class="lines"><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Built for India -->
+<section class="section section-mist">
+  <div class="container india">
+    <div data-reveal>
+      <span class="eyebrow">Built for Indian commerce</span>
+      <h2>The rules that cost money are built in, and tested</h2>
+      <p class="lead">
+        Generic store builders leave GST, cash on delivery and stock accuracy to plugins and spreadsheets. In BazaarFlow
+        they are part of the core, with automated tests on every rule that touches money.
+      </p>
+    </div>
+    <ul class="india-list" data-reveal>
+      <li><b>GST on every line</b><span>CGST/SGST or IGST chosen by place of supply, with invoices numbered per financial year.</span></li>
+      <li><b>Cash on delivery</b><span>Handling fees, order limits and collection tracked through to dispatch.</span></li>
+      <li><b>Stock you can trust</b><span>Reserved at checkout, consumed at dispatch, every movement in an append-only ledger.</span></li>
+      <li><b>Returns and refunds</b><span>Cancellations, returns, credit notes and refunds without breaking your books.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- How to get it -->
+<section class="section">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <span class="eyebrow">How you can get it</span>
+      <h2>Three ways to launch on BazaarFlow</h2>
+      <p class="lead">Pricing depends on your catalogue size, integrations and customisation. You get a written quote after a walkthrough.</p>
+    </div>
+    <div class="grid grid-3">
+      @for (o of options; track o.title) {
+        <div class="card option" data-reveal>
+          <h3>{{ o.title }}</h3>
+          <p class="muted">{{ o.text }}</p>
+          <ul class="check-list">
+            @for (pt of o.points; track pt) {
+              <li><span class="tick"><app-icon name="check" [size]="14" /></span><span>{{ pt }}</span></li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+    <div class="center-cta">
+      <a class="btn btn-primary btn-lg" routerLink="/contact" [queryParams]="{ interest: 'bazaarflow' }">Get a quote for BazaarFlow</a>
+    </div>
+  </div>
+</section>
+
+<section class="section section-mist">
+  <div class="container faq-grid">
+    <div data-reveal>
+      <span class="eyebrow">Questions</span>
+      <h2>BazaarFlow FAQs</h2>
+      <p class="muted">Built with Angular, Java Spring Boot and PostgreSQL. Secure sign-in, role-based permissions and documented APIs.</p>
+    </div>
+    <app-faq [items]="faqs" />
+  </div>
+</section>
+
+<app-cta-band
+  eyebrow="Ready to sell online?"
+  heading="See BazaarFlow running with your own products"
+  text="Book a 30-minute walkthrough. We'll show the storefront and back office with your use case in mind, then send a written quote."
+  cta="Book a walkthrough"
+  interest="bazaarflow" />

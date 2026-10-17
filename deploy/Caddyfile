@@ -2,5 +2,14 @@
 # the api A record points at this VM and ports 80/443 are reachable.
 api.liabletech.com {
 	encode gzip
-	reverse_proxy bff:8080
+
+	# BazaarFlow live demo API: api.liabletech.com/ecommerce/api/... -> bazaarflow:8080/api/...
+	handle_path /ecommerce/* {
+		reverse_proxy bazaarflow:8080
+	}
+
+	# Website BFF: contact form and waitlists.
+	handle {
+		reverse_proxy bff:8080
+	}
 }

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+# The BazaarFlow product demo holds sample data only.
+Disallow: /ecommerce/
+
+Sitemap: https://liabletech.com/sitemap.xml

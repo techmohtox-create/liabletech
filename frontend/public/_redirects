@@ -1,0 +1,19 @@
+# Cloudflare Pages rules. Rewrites (200) apply even when a file exists, so they list only the
+# BazaarFlow demo's in-app routes; its JavaScript and CSS files are served as normal.
+/ecommerce                /ecommerce/            301
+/ecommerce/login          /ecommerce/             200
+/ecommerce/register       /ecommerce/             200
+/ecommerce/shop           /ecommerce/             200
+/ecommerce/shop/*         /ecommerce/             200
+/ecommerce/admin          /ecommerce/             200
+/ecommerce/admin/*        /ecommerce/             200
+
+# Common alternative addresses
+/services/                /services              301
+/products/                /products              301
+/about/                   /about                 301
+/contact/                 /contact               301
+/approach                 /about                 301
+/ecommerce-platform       /products/bazaarflow   301
+/bazaarflow               /products/bazaarflow   301
+/medflow                  /products/medflow-ai   301

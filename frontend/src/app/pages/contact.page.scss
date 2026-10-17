@@ -1,0 +1,45 @@
+.contact-hero { padding-bottom: clamp(28px, 4vw, 44px); }
+.layout { display: grid; grid-template-columns: 1.6fr 1fr; gap: clamp(24px, 4vw, 48px); align-items: start; }
+
+.scoper {
+  padding: clamp(22px, 3.5vw, 40px); border: 1px solid var(--line); border-radius: var(--radius-lg); background: #fff;
+  box-shadow: var(--shadow); min-height: 420px;
+  h2 { font-size: clamp(1.35rem, 2.4vw, 1.7rem); margin-bottom: 18px; }
+}
+.progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 14px;
+  span { height: 5px; border-radius: 3px; background: var(--line); transition: background-color 300ms var(--ease); }
+  span.on { background: var(--signal); }
+}
+.step-label { font-size: 0.82rem; font-weight: 650; color: var(--muted); letter-spacing: 0.04em; margin-bottom: 18px; }
+.sub-q { margin-top: 28px; }
+.nav-row { display: flex; align-items: center; gap: 12px; margin-top: 24px; }
+.summary { display: flex; flex-wrap: wrap; gap: 6px; margin: -6px 0 20px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+.submit { width: 100%; margin-top: 4px; }
+.fine { margin: 12px 0 0; font-size: 0.85rem; color: var(--muted); text-align: center; }
+.alert { margin-bottom: 14px; }
+
+.done { text-align: left;
+  h2 { margin-top: 16px; }
+}
+.done-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: var(--success-soft); color: var(--success); }
+.next-steps { padding-left: 20px; margin: 0 0 26px; display: grid; gap: 10px; color: var(--slate);
+  b { color: var(--navy); }
+}
+
+.side { display: grid; gap: 16px; position: sticky; top: calc(var(--header-h) + 20px);
+  h3 { font-size: 1.1rem; margin-bottom: 8px; }
+  p { margin-bottom: 12px; }
+}
+.mini-steps { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 12px;
+  li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: center; color: var(--slate); font-size: 0.95rem; }
+  b { width: 28px; height: 28px; border-radius: 8px; background: var(--signal-soft); color: var(--signal); display: grid; place-items: center; font-size: 0.85rem; }
+}
+.mail { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
+.demo .badge { margin-bottom: 10px; }
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { position: static; }
+}
+@media (max-width: 560px) { .two { grid-template-columns: 1fr; } }
