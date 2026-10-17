@@ -11,20 +11,20 @@ services:
       - "8080"
 
   # BazaarFlow live demo (liabletech.com/ecommerce). The jar is built on a PC and copied here;
-  # see bazaarflow/Dockerfile. Secrets live in bazaarflow.env, which is not committed.
+  # see bazaarflow/Dockerfile. The demo keeps its data in an in-memory H2 database inside the
+  # app: queries take microseconds instead of a round trip to Neon, and a restart reseeds it.
   bazaarflow:
     build: ./bazaarflow
     restart: unless-stopped
-    env_file: bazaarflow.env
+    env_file: bazaarflow.env          # OBENOL_JWT_SECRET
     environment:
+      SPRING_PROFILES_ACTIVE: h2
+      SPRING_DATASOURCE_URL: jdbc:h2:mem:bazaarflow;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+      SPRING_H2_CONSOLE_ENABLED: "false"
       BAZAARFLOW_DEMO: "true"
       BAZAARFLOW_CORS_ORIGINS: https://liabletech.com,https://www.liabletech.com
       BAZAARFLOW_API_DOCS: "false"
       BAZAARFLOW_ACTUATOR_EXPOSE: health
-      BAZAARFLOW_DB_POOL_MAX: "4"
-      BAZAARFLOW_DB_POOL_MIN_IDLE: "0"
-      BAZAARFLOW_DB_IDLE_TIMEOUT_MS: "60000"
-      BAZAARFLOW_DB_MAX_LIFETIME_MS: "300000"
       SERVER_FORWARD_HEADERS_STRATEGY: native
     mem_limit: 448m
     expose:
