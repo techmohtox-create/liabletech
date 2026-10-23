@@ -1,0 +1,165 @@
+<div class="page-head">
+  <div>
+    <h1>Upload files</h1>
+    <p>Two files a week: your orders, and the payout statement each platform sends. CSV and Excel both work, and most export
+      layouts are recognised as they are.</p>
+  </div>
+  <div class="actions">
+    <a class="btn small" href="/api/imports/templates/orders" download><app-icon name="download" />Orders template</a>
+    <a class="btn small" href="/api/imports/templates/statement" download><app-icon name="download" />Statement template</a>
+  </div>
+</div>
+
+@if (welcome) {
+  <div class="notice" style="margin-bottom: 20px">
+    <app-icon name="info" />
+    <div>Welcome. Start with <strong>Outlets &amp; terms</strong> to enter the commission rates from your platform agreements
+      (<a routerLink="/settings/outlets">set them now</a>), then upload this week's files below.</div>
+  </div>
+}
+@if (!session.canEdit()) {
+  <div class="notice" style="margin-bottom: 20px"><app-icon name="lock" />Your role can view results but not upload files.</div>
+}
+
+<div class="grid-2">
+  <section class="card">
+    <div class="card-head"><div><h2>1. Orders</h2><p>From your POS (Petpooja, Posist…) or the platform's order history</p></div></div>
+    <form class="card-body stack" (ngSubmit)="uploadOrders()">
+      <div class="form-grid">
+        <label class="field"><span>Outlet</span>
+          <select name="ordersOutlet" [(ngModel)]="ordersOutlet" required>
+            @for (o of session.activeOutlets(); track o.id) { <option [ngValue]="o.id">{{ o.name }}</option> }
+          </select>
+        </label>
+        <label class="field"><span>Platform</span>
+          <select name="ordersPlatform" [(ngModel)]="ordersPlatform">
+            <option value="">From the file's Platform column</option>
+            <option value="SWIGGY">Swiggy</option>
+            <option value="ZOMATO">Zomato</option>
+          </select>
+        </label>
+      </div>
+      <label class="drop" [class.over]="over() === 'orders'" (dragover)="$event.preventDefault(); over.set('orders')"
+        (dragleave)="over.set(null)" (drop)="drop('orders', $event)">
+        <app-icon name="file" [size]="24" />
+        <strong>{{ ordersFile()?.name ?? 'Choose or drop the order export' }}</strong>
+        <span class="muted small">.csv, .xlsx or .xls, up to 10 MB. Re-uploading overlapping dates is safe.</span>
+        <input type="file" accept=".csv,.xlsx,.xls,.txt" (change)="pick('orders', $any($event.target).files)" />
+      </label>
+      <button class="btn primary" type="submit" [disabled]="!ordersFile() || busy() !== null || !session.canEdit()">
+        {{ busy() === 'orders' ? 'Importing…' : 'Import orders' }}
+      </button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>2. Payout statement</h2><p>The weekly annexure from the partner app or email</p></div></div>
+    <form class="card-body stack" (ngSubmit)="uploadStatement()">
+      <div class="form-grid">
+        <label class="field"><span>Outlet</span>
+          <select name="statementOutlet" [(ngModel)]="statementOutlet" required>
+            @for (o of session.activeOutlets(); track o.id) { <option [ngValue]="o.id">{{ o.name }}</option> }
+          </select>
+        </label>
+        <label class="field"><span>Platform</span>
+          <select name="statementPlatform" [(ngModel)]="statementPlatform">
+            <option value="SWIGGY">Swiggy</option>
+            <option value="ZOMATO">Zomato</option>
+          </select>
+        </label>
+        <label class="field"><span>Period from</span><input type="date" name="periodStart" [(ngModel)]="periodStart" /></label>
+        <label class="field"><span>Period to</span><input type="date" name="periodEnd" [(ngModel)]="periodEnd" /></label>
+        <label class="field"><span>Amount credited to bank</span>
+          <input type="number" name="credited" [(ngModel)]="creditedAmount" step="0.01" placeholder="From your bank statement" />
+        </label>
+        <label class="field"><span>UTR</span><input type="text" name="utr" [(ngModel)]="utr" maxlength="40" /></label>
+      </div>
+      <small class="muted">Leave the period blank to take it from the order dates in the file. Enter the bank credit to catch short payments.</small>
+      <label class="drop" [class.over]="over() === 'statement'" (dragover)="$event.preventDefault(); over.set('statement')"
+        (dragleave)="over.set(null)" (drop)="drop('statement', $event)">
+        <app-icon name="file" [size]="24" />
+        <strong>{{ statementFile()?.name ?? 'Choose or drop the payout statement' }}</strong>
+        <span class="muted small">Checked against your orders and terms as soon as it is uploaded.</span>
+        <input type="file" accept=".csv,.xlsx,.xls,.txt" (change)="pick('statement', $any($event.target).files)" />
+      </label>
+      <button class="btn primary" type="submit" [disabled]="!statementFile() || busy() !== null || !session.canEdit()">
+        {{ busy() === 'statement' ? 'Importing and checking…' : 'Import and check' }}
+      </button>
+    </form>
+  </section>
+</div>
+
+@if (error()) { <div class="notice error" role="alert" style="margin-top: 20px"><app-icon name="info" /><span>{{ error() }}</span></div> }
+
+@if (result(); as r) {
+  <section class="card" style="margin-top: 20px">
+    <div class="card-head">
+      <h2>{{ r.kind === 'ORDERS' ? 'Orders imported' : 'Statement imported and checked' }}</h2>
+      @if (r.statementId) { <a class="btn small primary" [routerLink]="['/statements', r.statementId]">See findings <app-icon name="arrow" [size]="16" /></a> }
+    </div>
+    <div class="card-body stack">
+      <div class="notice ok"><app-icon name="check" />
+        <span>
+          {{ r.fileName }}: {{ r.imported }} rows imported
+          @if (r.kind === 'ORDERS') { ({{ r.newRecords }} new, {{ r.imported - r.newRecords }} updated) }
+          @if (r.skipped) { · {{ r.skipped }} skipped (totals, other channels) }
+          @if (r.rejected) { · <strong>{{ r.rejected }} rejected</strong> }
+          @if (r.check) { · <strong>{{ r.check.findings }} findings</strong>, {{ r.check.matchedLines }} rows matched to your orders }
+          @if (r.recheckedStatements) { · {{ r.recheckedStatements }} other statements checked again }
+        </span>
+      </div>
+      @if (r.check && r.check.unmatchedLines > 0) {
+        <div class="notice"><app-icon name="info" /><span>{{ r.check.unmatchedLines }} statement rows have no matching order in your records.
+          Upload orders for this period so missing payments and order values can be checked too.</span></div>
+      }
+      <div>
+        <h3 style="margin-bottom: 8px">Columns read</h3>
+        <div class="mapping">@for (m of mapping(); track m.field) { <span><strong>{{ m.field }}</strong> ← {{ m.header }}</span> }</div>
+      </div>
+      @if (r.errors.length) {
+        <div>
+          <h3 style="margin-bottom: 8px">Rows that could not be read</h3>
+          <ul class="small">@for (e of r.errors; track e.row) { <li>Row {{ e.row }}: {{ e.message }}</li> }</ul>
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<div class="grid-2" style="margin-top: 20px">
+  <section class="card">
+    <div class="card-head"><h2>Recent uploads</h2></div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>File</th><th>Kind</th><th class="num">Rows</th><th>When</th></tr></thead>
+        <tbody>
+          @for (h of history().slice(0, 12); track h.id) {
+            <tr>
+              <td><div>{{ h.fileName }}</div><div class="muted small">{{ outletName(h.outletId) }}@if (h.kind !== 'ORDERS') { · <app-platform [value]="h.platform" /> }</div></td>
+              <td>{{ h.kind === 'ORDERS' ? 'Orders' : 'Statement' }}</td>
+              <td class="num">{{ h.rowsImported }}@if (h.rowsRejected) { <span class="bad"> / {{ h.rowsRejected }} rejected</span> }</td>
+              <td class="nowrap">{{ h.createdAt | stamp }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="muted">Nothing uploaded yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>Where to find the files</h2></div>
+    <div class="card-body stack">
+      <div>
+        <h3>Swiggy</h3>
+        <ol class="steps"><li>Partner app or partner.swiggy.com → Payouts</li><li>Open the week and download the annexure (order-level breakdown)</li></ol>
+      </div>
+      <div>
+        <h3>Zomato</h3>
+        <ol class="steps"><li>Restaurant Partner app → Payouts</li><li>Pick the settlement and download the order-level report</li></ol>
+      </div>
+      <p class="muted small">Layouts change from time to time. If a column is not recognised, rename its header to the one in the template.
+        Nothing is sent to the platforms by PayoutCheck; you stay in control of every dispute.</p>
+    </div>
+  </section>
+</div>

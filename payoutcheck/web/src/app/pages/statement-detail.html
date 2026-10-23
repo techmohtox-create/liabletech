@@ -1,0 +1,126 @@
+@if (error()) { <div class="notice error">{{ error() }}</div> }
+@if (detail(); as d) {
+  <div class="page-head">
+    <div>
+      <a routerLink="/statements" class="muted small">← All statements</a>
+      <h1 style="margin-top: 6px">{{ d.statement.periodStart | period: d.statement.periodEnd }}</h1>
+      <p>
+        <app-platform [value]="d.statement.platform" /> · {{ session.outletName(d.statement.outletId) }}
+        @if (d.statement.utr) { · UTR <span class="mono">{{ d.statement.utr }}</span> }
+        @if (d.statement.payoutDate) { · paid {{ d.statement.payoutDate | longDate }} }
+        · checked {{ d.statement.checkedAt | stamp }}
+      </p>
+    </div>
+    <div class="actions">
+      @if (session.canEdit()) {
+        <button class="btn" type="button" (click)="recheck()" [disabled]="busy()"><app-icon name="refresh" />Check again</button>
+        <button class="btn danger" type="button" (click)="confirmDelete.set(true)"><app-icon name="trash" />Delete</button>
+      }
+      <button class="btn primary" type="button" (click)="writeLetter()" [disabled]="open().length === 0"><app-icon name="mail" />Dispute letter</button>
+    </div>
+  </div>
+
+  <section class="kpis">
+    <div class="card kpi"><span class="label">Sales on statement</span><span class="value">{{ d.statement.grossSales | inr: true }}</span>
+      <span class="sub">{{ d.statement.lineCount }} rows</span></div>
+    <div class="card kpi"><span class="label">Deducted</span><span class="value">{{ d.statement.totalDeductions | inr: true }}</span>
+      <span class="sub">Net payout {{ d.statement.netPayout | inr: true }}@if (d.statement.creditedAmount !== null) { · credited {{ d.statement.creditedAmount | inr: true }} }</span></div>
+    <div class="card kpi hero"><span class="label">Open and disputed</span><span class="value">{{ openAtRisk() | inr: true }}</span>
+      <span class="sub">{{ open().length }} findings</span></div>
+    <div class="card kpi"><span class="label">Recovered</span><span class="value good">{{ recovered() | inr: true }}</span>
+      <span class="sub">{{ d.findings.length }} findings in total</span></div>
+  </section>
+
+  <section class="card">
+    <div class="filters">
+      <div class="segmented" role="tablist">
+        <button type="button" role="tab" [class.on]="tab() === 'findings'" (click)="tab.set('findings')">Findings ({{ d.findings.length }})</button>
+        <button type="button" role="tab" [class.on]="tab() === 'rows'" (click)="tab.set('rows')">Statement rows ({{ d.lines.length }})</button>
+      </div>
+      @if (tab() === 'rows') {
+        <label class="check"><input type="checkbox" [checked]="onlyFlagged()" (change)="onlyFlagged.set($any($event.target).checked)" /> Only flagged rows</label>
+      }
+    </div>
+
+    @if (tab() === 'findings') {
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Finding</th><th>Order</th><th class="num">Expected</th><th class="num">Charged</th><th>Status</th><th class="num">At risk</th></tr></thead>
+          <tbody>
+            @for (f of d.findings; track f.id) {
+              <tr>
+                <td><div class="finding-title"><app-severity [value]="f.severity" /> <strong>{{ typeLabel(f.type) }}</strong></div>
+                  <div class="explain">{{ f.explanation }}</div></td>
+                <td class="mono nowrap">{{ f.orderRef ?? '–' }}</td>
+                <td class="num">{{ f.expectedAmount | inr }}</td>
+                <td class="num">{{ f.actualAmount | inr }}</td>
+                <td><app-status [value]="f.status" />@if (f.ticketRef) { <div class="muted small mono">{{ f.ticketRef }}</div> }</td>
+                <td class="num">{{ f.amountAtRisk | inr }}
+                  @if (session.canEdit()) { <div><button type="button" class="btn small ghost" (click)="editing.set(f)">Update</button></div> }</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6"><div class="empty"><app-icon name="check" [size]="28" /><h3>This statement checks out</h3>
+                <p>Every row matched your orders and your contract terms.</p></div></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="data rows">
+          <thead>
+            <tr><th>#</th><th>Order</th><th>Status</th><th class="num">Items</th><th class="num">Pack.</th><th class="num">Disc.</th>
+              <th class="num">Comm.</th><th class="num">PG</th><th class="num">GST</th><th class="num">TDS</th><th class="num">Refund</th>
+              <th class="num">Cancel</th><th class="num">Penalty</th><th class="num">Adj.</th><th class="num">Net</th></tr>
+          </thead>
+          <tbody>
+            @for (l of lines(); track l.id) {
+              <tr [class.flagged]="flaggedLines().has(l.id)">
+                <td class="muted">{{ l.lineNo }}</td>
+                <td class="mono nowrap">{{ l.orderRef ?? (l.description ?? '–') }}</td>
+                <td class="small">{{ l.orderStatus?.toLowerCase() ?? '' }}</td>
+                <td class="num">{{ l.itemTotal | inr }}</td><td class="num">{{ l.packaging | inr }}</td><td class="num">{{ l.restaurantDiscount | inr }}</td>
+                <td class="num">{{ l.commission | inr }}</td><td class="num">{{ l.pgFee | inr }}</td><td class="num">{{ l.gstOnFees | inr }}</td>
+                <td class="num">{{ l.tds | inr }}</td><td class="num">{{ l.customerRefund | inr }}</td><td class="num">{{ l.cancellationDeduction | inr }}</td>
+                <td class="num">{{ l.penalty | inr }}</td><td class="num">{{ l.otherAdjustment | inr }}</td><td class="num"><strong>{{ l.netPayout | inr }}</strong></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <app-finding-editor [finding]="editing()" [typeLabel]="editing() ? typeLabel(editing()!.type) : ''" (saved)="saved()" (cancelled)="editing.set(null)" />
+
+  <app-modal heading="Dispute letter" [open]="!!letter()" [wide]="true" (closed)="letter.set(null)">
+    @if (letter(); as l) {
+      <div class="stack">
+        <p class="muted">Paste this into a ticket in the {{ d.statement.platform === 'SWIGGY' ? 'Swiggy Partner' : 'Zomato Restaurant Partner' }} app under payout queries.
+          Attach order screenshots or packing photos where you have them.</p>
+        <label class="field"><span>Subject</span><input type="text" [value]="l.subject" readonly /></label>
+        <label class="field"><span>Message</span><textarea rows="16" readonly class="mono">{{ l.body }}</textarea></label>
+        <div class="actions" style="justify-content: space-between">
+          <strong>{{ l.findings }} findings · {{ l.totalClaimed | inr }}</strong>
+          <div class="actions">
+            <button type="button" class="btn" (click)="copyLetter(l)"><app-icon name="copy" />Copy</button>
+            @if (session.canEdit()) {
+              <button type="button" class="btn primary" (click)="markLetterSent()">I've sent it: mark disputed</button>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </app-modal>
+
+  <app-modal heading="Delete this statement?" [open]="confirmDelete()" (closed)="confirmDelete.set(false)">
+    <div class="stack">
+      <p>The statement, its rows and all {{ d.findings.length }} findings, including their dispute history, will be removed.
+        Neighbouring statements are checked again. Upload the file again to restore it.</p>
+      <div class="actions" style="justify-content: flex-end">
+        <button type="button" class="btn" (click)="confirmDelete.set(false)">Cancel</button>
+        <button type="button" class="btn primary" (click)="remove()">Delete statement</button>
+      </div>
+    </div>
+  </app-modal>
+}

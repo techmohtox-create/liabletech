@@ -1,0 +1,59 @@
+<div class="shell" [class.menu-open]="menuOpen()">
+  <aside class="sidebar" aria-label="Main navigation">
+    <a routerLink="/" class="brand">
+      <img src="favicon.svg" alt="" width="28" height="28" />
+      <span>PayoutCheck</span>
+    </a>
+    <nav>
+      @for (item of nav; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: item.exact }">
+          <app-icon [name]="item.icon" />{{ item.label }}
+        </a>
+      }
+      <p class="nav-heading">Settings</p>
+      @for (item of settings; track item.path) {
+        @if (!item.owner || session.isOwner()) {
+          <a [routerLink]="item.path" routerLinkActive="active"><app-icon [name]="item.icon" />{{ item.label }}</a>
+        }
+      }
+    </nav>
+    <div class="sidebar-foot">
+      <span>by LiableTech</span>
+    </div>
+  </aside>
+  <button type="button" class="scrim" aria-label="Close menu" (click)="menuOpen.set(false)"></button>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="icon-btn menu-btn" aria-label="Open menu" (click)="menuOpen.set(true)">
+        <app-icon name="menu" />
+      </button>
+      <label class="outlet-picker">
+        <span class="sr-only">Outlet</span>
+        <app-icon name="outlet" />
+        <select [value]="session.outletId() ?? ''" (change)="chooseOutlet($any($event.target).value)">
+          @if (session.outlets().length > 1) {
+            <option value="">All outlets</option>
+          }
+          @for (outlet of session.outlets(); track outlet.id) {
+            <option [value]="outlet.id">{{ outlet.name }}{{ outlet.active ? '' : ' (inactive)' }}</option>
+          }
+        </select>
+      </label>
+      <div class="who">
+        @if (session.me(); as me) {
+          <div class="who-text">
+            <strong>{{ me.fullName }}</strong>
+            <span>{{ me.orgName }} · {{ me.role.toLowerCase() }}</span>
+          </div>
+        }
+        <button type="button" class="icon-btn" (click)="session.logout()" aria-label="Sign out" title="Sign out">
+          <app-icon name="logout" />
+        </button>
+      </div>
+    </header>
+    <main id="content">
+      <router-outlet />
+    </main>
+  </div>
+</div>

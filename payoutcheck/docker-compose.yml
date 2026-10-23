@@ -1,0 +1,33 @@
+# Local production-like stack: PayoutCheck on PostgreSQL.
+#   docker compose up --build    then open http://localhost:8080
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: payoutcheck
+      POSTGRES_USER: payoutcheck
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payoutcheck"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/payoutcheck
+      SPRING_DATASOURCE_USERNAME: payoutcheck
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      PAYOUTCHECK_DEMO: ${PAYOUTCHECK_DEMO:-true}
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:

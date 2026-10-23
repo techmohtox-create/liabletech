@@ -1,0 +1,138 @@
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p>What the platforms deducted, what looks wrong, and what you have won back.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" routerLink="/upload"><app-icon name="upload" />Upload files</a>
+    <a class="btn primary" routerLink="/findings"><app-icon name="findings" />Work disputes</a>
+  </div>
+</div>
+
+@if (error()) { <div class="notice error">{{ error() }}</div> }
+
+@if (data(); as d) {
+  @if (d.totals.statements === 0) {
+    <div class="card">
+      <div class="empty">
+        <app-icon name="statements" [size]="32" />
+        <h3>No payout statements yet</h3>
+        <p>Upload your order export and a weekly payout statement, and PayoutCheck will check every row.</p>
+        <a class="btn primary" routerLink="/upload">Upload your first files</a>
+      </div>
+    </div>
+  } @else {
+    <section class="kpis" aria-label="Totals">
+      <div class="card kpi hero">
+        <span class="label">Open to dispute</span>
+        <span class="value">{{ d.totals.openAtRisk | inr: true }}</span>
+        <span class="sub">{{ d.totals.openFindings }} findings not yet raised</span>
+      </div>
+      <div class="card kpi">
+        <span class="label">Under dispute</span>
+        <span class="value">{{ d.totals.disputedAtRisk | inr: true }}</span>
+        <span class="sub">Raised with the platform, awaiting reply</span>
+      </div>
+      <div class="card kpi">
+        <span class="label">Recovered</span>
+        <span class="value good">{{ d.totals.recovered | inr: true }}</span>
+        <span class="sub">{{ d.totals.rejected | inr: true }} rejected by the platforms</span>
+      </div>
+      <div class="card kpi">
+        <span class="label">Flagged share of sales</span>
+        <span class="value">{{ d.totals.flaggedShareOfSales }}%</span>
+        <span class="sub">of {{ d.totals.grossSales | inr: true }} across {{ d.totals.statements }} statements</span>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>Flagged each week</h2>
+            <p>Amount at risk found in each week's statements</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <app-bar-chart [bars]="weekBars()" title="Amount flagged per statement week" />
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h2>Where the money is</h2>
+            <p>Open and disputed findings by kind</p>
+          </div>
+        </div>
+        <div class="card-body">
+          @if (d.byType.length === 0) {
+            <p class="muted">Nothing open. Every finding has been worked.</p>
+          } @else {
+            <ul class="type-bars">
+              @for (t of d.byType; track t.type) {
+                <li>
+                  <a [routerLink]="['/findings']" [queryParams]="{ type: t.type }">
+                    <span class="type-label">{{ t.label }} <span class="muted">· {{ t.count }}</span></span>
+                    <span class="num">{{ t.amount | inr: true }}</span>
+                    <span class="track" aria-hidden="true"><span class="fill" [style.width.%]="(t.amount / maxType()) * 100"></span></span>
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </section>
+    </div>
+
+    <div class="grid-2" style="margin-top: 20px">
+      <section class="card">
+        <div class="card-head">
+          <h2>Biggest open findings</h2>
+          <a class="btn small ghost" routerLink="/findings">See all <app-icon name="arrow" [size]="16" /></a>
+        </div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Finding</th><th>Order</th><th class="num">At risk</th></tr></thead>
+            <tbody>
+              @for (f of d.topOpen; track f.id) {
+                <tr class="clickable" [routerLink]="['/statements', f.statementId]">
+                  <td><app-severity [value]="f.severity" /> <span class="explain">{{ f.explanation }}</span></td>
+                  <td class="mono nowrap">{{ f.orderRef ?? '–' }}</td>
+                  <td class="num">{{ f.amountAtRisk | inr }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="3" class="muted">No open findings.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>By platform</h2></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Platform</th><th class="num">Sales</th><th class="num">Deducted</th><th class="num">Rate</th><th class="num">Open</th></tr></thead>
+            <tbody>
+              @for (p of d.byPlatform; track p.platform) {
+                <tr>
+                  <td><app-platform [value]="p.platform" /></td>
+                  <td class="num">{{ p.grossSales | inr: true }}</td>
+                  <td class="num">{{ p.deductions | inr: true }}</td>
+                  <td class="num">{{ p.deductionRate }}%</td>
+                  <td class="num">{{ p.openAtRisk | inr: true }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="card-foot"><span class="muted">Deducted covers commission, fees, GST, TDS, refunds, penalties and adjustments.</span></div>
+      </section>
+    </div>
+  }
+} @else if (!error()) {
+  <div class="kpis">
+    @for (i of [1, 2, 3, 4]; track i) { <div class="card kpi"><div class="skeleton" style="width: 60%"></div><div class="skeleton" style="height: 26px"></div></div> }
+  </div>
+}

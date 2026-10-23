@@ -1,0 +1,110 @@
+<div class="page-head">
+  <div>
+    <h1>Disputes</h1>
+    <p>Everything the checks flagged. Raise the open ones with the platform, then record what came back.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" [href]="exportUrl()" download><app-icon name="download" />Export CSV</a>
+  </div>
+</div>
+
+<section class="card">
+  <div class="filters">
+    <div class="segmented" role="group" aria-label="Status">
+      @for (s of statuses; track s) {
+        <button type="button" [class.on]="status() === s" (click)="setFilter(() => status.set(s))">{{ statusLabel[s] }}</button>
+      }
+    </div>
+    <select [ngModel]="typeFilter()" (ngModelChange)="setFilter(() => typeFilter.set($event))" aria-label="Kind">
+      <option value="">All kinds</option>
+      @for (t of types(); track t.code) { <option [value]="t.code">{{ t.label }}</option> }
+    </select>
+    <select [ngModel]="platform()" (ngModelChange)="setFilter(() => platform.set($event))" aria-label="Platform">
+      <option value="">Both platforms</option>
+      <option value="SWIGGY">Swiggy</option>
+      <option value="ZOMATO">Zomato</option>
+    </select>
+    <select [ngModel]="severity()" (ngModelChange)="setFilter(() => severity.set($event))" aria-label="Severity">
+      <option value="">Any severity</option>
+      <option value="HIGH">High</option>
+      <option value="MEDIUM">Medium</option>
+      <option value="LOW">Low</option>
+    </select>
+    <input type="search" placeholder="Order ID, ticket or text" [ngModel]="query()" (ngModelChange)="setFilter(() => query.set($event))" aria-label="Search" />
+  </div>
+
+  @if (selected().size > 0 && session.canEdit()) {
+    <div class="filters bulk">
+      <strong>{{ selected().size }} selected</strong>
+      <input type="text" placeholder="Ticket reference (optional)" [ngModel]="bulkTicket()" (ngModelChange)="bulkTicket.set($event)" aria-label="Ticket reference" />
+      <button class="btn small primary" type="button" (click)="bulk('DISPUTED')">Mark disputed</button>
+      <button class="btn small" type="button" (click)="bulk('RECOVERED')">Recovered in full</button>
+      <button class="btn small" type="button" (click)="bulk('REJECTED')">Rejected</button>
+      <button class="btn small" type="button" (click)="bulk('IGNORED')">Ignore</button>
+      <button class="btn small ghost" type="button" (click)="toggleAll(false)">Clear</button>
+    </div>
+  }
+
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          @if (session.canEdit()) {
+            <th style="width: 36px"><input type="checkbox" class="check" [checked]="allSelected()" (change)="toggleAll($any($event.target).checked)" aria-label="Select all on this page" /></th>
+          }
+          <th>Finding</th>
+          <th>Order</th>
+          <th>Platform</th>
+          <th>Status</th>
+          <th class="num">At risk</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (f of result()?.items ?? []; track f.id) {
+          <tr>
+            @if (session.canEdit()) {
+              <td><input type="checkbox" [checked]="selected().has(f.id)" (change)="toggle(f.id, $any($event.target).checked)" [attr.aria-label]="'Select finding ' + f.id" /></td>
+            }
+            <td>
+              <div class="finding-title"><app-severity [value]="f.severity" /> <strong>{{ typeLabel(f.type) }}</strong></div>
+              <div class="explain">{{ f.explanation }}</div>
+              @if (f.ticketRef || f.notes) {
+                <div class="muted small">@if (f.ticketRef) { Ticket <span class="mono">{{ f.ticketRef }}</span> } @if (f.notes) { · {{ f.notes }} }</div>
+              }
+            </td>
+            <td class="mono nowrap"><a [routerLink]="['/statements', f.statementId]">{{ f.orderRef ?? 'Statement' }}</a></td>
+            <td><app-platform [value]="f.platform" /></td>
+            <td>
+              <app-status [value]="f.status" />
+              @if (f.status === 'RECOVERED' && f.recoveredAmount !== null) { <div class="muted small">{{ f.recoveredAmount | inr }}</div> }
+            </td>
+            <td class="num">
+              {{ f.amountAtRisk | inr }}
+              @if (session.canEdit()) { <div><button type="button" class="btn small ghost" (click)="editing.set(f)">Update</button></div> }
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6">
+            <div class="empty">
+              @if (loading()) { <p>Loading…</p> } @else {
+                <app-icon name="check" [size]="28" />
+                <h3>Nothing here</h3>
+                <p>No findings match these filters.</p>
+              }
+            </div>
+          </td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="card-foot">
+    <span class="muted">{{ result()?.total ?? 0 }} findings · {{ money(pageTotal()) }} on this page</span>
+    <div class="pager">
+      <button class="btn small" type="button" [disabled]="page() === 0" (click)="page.set(page() - 1)">Previous</button>
+      <span>Page {{ page() + 1 }} of {{ pages() }}</span>
+      <button class="btn small" type="button" [disabled]="page() + 1 >= pages()" (click)="page.set(page() + 1)">Next</button>
+    </div>
+  </div>
+</section>
+
+<app-finding-editor [finding]="editing()" [typeLabel]="editing() ? typeLabel(editing()!.type) : ''" (saved)="saved()" (cancelled)="editing.set(null)" />

@@ -131,7 +131,7 @@ public class DashboardService {
 
 		List<Finding> topOpen = all.stream()
 			.filter((f) -> f.status() == FindingStatus.OPEN)
-			.sorted(Comparator.comparing(Finding::amountAtRisk).reversed())
+			.sorted(Comparator.comparing(Finding::severity).thenComparing(Finding::amountAtRisk, Comparator.reverseOrder()))
 			.limit(8)
 			.toList();
 		return new Dashboard(totals, weeks, byType, byPlatform, topOpen);
