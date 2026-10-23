@@ -29,7 +29,7 @@ import { Reveal } from '../shared/reveal';
         @for (p of products; track p.slug) {
           <article class="product" [class.live]="p.status === 'live'" data-reveal>
             <div class="icon-col">
-              <span class="product-icon"><app-icon [name]="icon(p.slug)" [size]="34" /><i></i></span>
+              <span class="product-icon"><app-icon [name]="p.icon" [size]="34" /><i></i></span>
             </div>
             <div class="copy">
               <div class="title-row">
@@ -82,15 +82,11 @@ export class ProductsPage {
 
   constructor() {
     inject(Seo).set({
-      title: 'Products: BazaarFlow, MedFlow AI & ERP | LiableTech',
+      title: 'Products: BazaarFlow, MedFlow AI, ERP & OrderVaani | LiableTech',
       description:
-        'LiableTech products: BazaarFlow e-commerce with GST invoicing (live demo), MedFlow AI hospital management and LiableTech ERP (coming soon).',
+        'LiableTech products: BazaarFlow e-commerce with GST invoicing (live demo), MedFlow AI hospital management, LiableTech ERP and OrderVaani AI order taking (coming soon).',
       path: '/products',
       crumbs: [{ name: 'Products', path: '/products' }],
     });
-  }
-
-  protected icon(slug: string): 'cart' | 'pulse' | 'grid' {
-    return slug === 'bazaarflow' ? 'cart' : slug === 'erp' ? 'grid' : 'pulse';
   }
 }

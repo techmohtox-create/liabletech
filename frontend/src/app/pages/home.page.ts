@@ -49,8 +49,4 @@ export class HomePage {
       schema: [schema.organization(), schema.website(), schema.faq(HOME_FAQS)],
     });
   }
-
-  protected productIcon(slug: string): 'cart' | 'pulse' | 'grid' {
-    return slug === 'bazaarflow' ? 'cart' : slug === 'erp' ? 'grid' : 'pulse';
-  }
 }

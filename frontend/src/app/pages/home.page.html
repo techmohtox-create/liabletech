@@ -131,11 +131,11 @@
       <h2>Ready-made platforms, customised to how you work</h2>
       <p class="lead">Start from a proven product instead of a blank page. Faster to launch, less risky, and still tailored to your process.</p>
     </div>
-    <div class="grid grid-3">
+    <div class="grid grid-2">
       @for (p of products; track p.slug) {
         <a class="card product" [class.live]="p.status === 'live'" [routerLink]="['/products', p.slug]" data-reveal>
           <div class="product-top">
-            <span class="product-icon"><app-icon [name]="productIcon(p.slug)" [size]="26" /><i></i></span>
+            <span class="product-icon"><app-icon [name]="p.icon" [size]="26" /><i></i></span>
             <span class="badge" [class.badge-live]="p.status === 'live'" [class.badge-soon]="p.status === 'soon'">
               {{ p.status === 'live' ? 'Live demo' : 'Coming soon' }}
             </span>

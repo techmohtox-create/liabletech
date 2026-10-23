@@ -25,9 +25,12 @@ import { WaitlistForm } from '../shared/waitlist-form';
             <h1>{{ p.name }}: {{ p.tagline }}</h1>
             <p class="lead">{{ p.summary }}</p>
             <p class="aud"><strong>Built for:</strong> {{ p.audience }}</p>
+            @if (p.price) {
+              <p class="price"><strong>Planned price:</strong> {{ p.price }}</p>
+            }
           </div>
           <div class="join" data-reveal>
-            <span class="product-icon"><app-icon [name]="p.slug === 'erp' ? 'grid' : 'pulse'" [size]="30" /><i></i></span>
+            <span class="product-icon"><app-icon [name]="p.icon" [size]="30" /><i></i></span>
             <h2>Get early access</h2>
             <p class="muted">Join the waitlist to see it first, shape the roadmap and get early-adopter terms.</p>
             <app-waitlist-form [product]="p.slug" [productName]="p.name" />
@@ -67,7 +70,7 @@ import { WaitlistForm } from '../shared/waitlist-form';
   styles: `
     .hero { display: grid; grid-template-columns: 1.2fr 1fr; gap: clamp(28px, 5vw, 64px); align-items: center; }
     h1 { margin-top: 14px; }
-    .aud { color: var(--slate); }
+    .aud, .price { color: var(--slate); }
     .join { padding: clamp(22px, 3vw, 32px); border-radius: var(--radius-lg); background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); }
     .join h2 { font-size: 1.5rem; margin: 16px 0 6px; }
     .product-icon { position: relative; width: 60px; height: 60px; border-radius: 16px; background: var(--navy); color: #fff; display: grid; place-items: center; }

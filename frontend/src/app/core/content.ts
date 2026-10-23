@@ -301,6 +301,7 @@ export type ProductStatus = 'live' | 'soon';
 
 export interface Product {
   slug: string;
+  icon: IconName;
   name: string;
   category: string;
   status: ProductStatus;
@@ -308,6 +309,8 @@ export interface Product {
   summary: string;
   audience: string;
   scope: string[];
+  /** Planned pricing, shown on the product page when set. */
+  price?: string;
   seoTitle: string;
   seoDescription: string;
 }
@@ -315,6 +318,7 @@ export interface Product {
 export const PRODUCTS: Product[] = [
   {
     slug: 'bazaarflow',
+    icon: 'cart',
     name: 'BazaarFlow',
     category: 'E-commerce and operations platform',
     status: 'live',
@@ -338,6 +342,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'medflow-ai',
+    icon: 'pulse',
     name: 'MedFlow AI',
     category: 'Hospital management',
     status: 'soon',
@@ -358,6 +363,7 @@ export const PRODUCTS: Product[] = [
   },
   {
     slug: 'erp',
+    icon: 'grid',
     name: 'LiableTech ERP',
     category: 'ERP for growing businesses',
     status: 'soon',
@@ -369,6 +375,29 @@ export const PRODUCTS: Product[] = [
     seoTitle: 'LiableTech ERP for growing businesses (coming soon) | LiableTech',
     seoDescription:
       'An ERP for purchasing, inventory, sales and GST-ready accounts in one system. Join the waitlist for early access.',
+  },
+  {
+    slug: 'ordervaani',
+    icon: 'voice',
+    name: 'OrderVaani',
+    category: 'AI order taking for distributors',
+    status: 'soon',
+    tagline: 'Voice notes and handwritten lists from shops, turned into clean orders.',
+    summary:
+      'Shopkeepers keep ordering the way they do today: a voice note in Hindi or Marathi, or a photo of a handwritten list. AI turns each one into a clean order of item, quantity and unit, confirms it back to the shopkeeper and adds it to the order sheet for the day, so nothing is missed or typed in wrong.',
+    audience: 'Wholesalers and distributors who take orders from retail shops.',
+    scope: [
+      'Voice notes in Hindi and Marathi turned into order lines',
+      'Photos of handwritten lists read into order lines',
+      'Items matched to your own catalogue, with units and pack sizes',
+      'Order confirmed back to the shopkeeper before it counts',
+      'Unclear lines flagged for your staff to check',
+      'One daily order sheet across all shops, ready to export',
+    ],
+    price: '₹499–₹999 per month per distributor',
+    seoTitle: 'OrderVaani: AI order taking from voice notes and photos (coming soon) | LiableTech',
+    seoDescription:
+      'OrderVaani turns Hindi and Marathi voice notes and photos of handwritten lists from shopkeepers into clean orders for distributors. Join the waitlist for early access.',
   },
 ];
 
@@ -467,6 +496,12 @@ export const PROBLEMS: { id: string; label: string; serviceSlug?: string; produc
     label: 'We need to sell online',
     productSlug: 'bazaarflow',
     answer: 'BazaarFlow gives you a storefront and the back office to run it, with GST invoicing built in. Try the live demo today.',
+  },
+  {
+    id: 'orders',
+    label: 'Orders get missed or typed in wrong',
+    productSlug: 'ordervaani',
+    answer: 'OrderVaani turns voice notes and photos of handwritten lists into clean orders, confirms them with the shop and builds the order sheet for the day.',
   },
   {
     id: 'disconnected',
@@ -586,6 +621,7 @@ export const NEEDS = [
   { id: 'bazaarflow', label: 'BazaarFlow e-commerce' },
   { id: 'medflow-ai', label: 'MedFlow AI (waitlist)' },
   { id: 'erp', label: 'LiableTech ERP (waitlist)' },
+  { id: 'ordervaani', label: 'OrderVaani order taking (waitlist)' },
   { id: 'other', label: 'Something else' },
 ];
 
