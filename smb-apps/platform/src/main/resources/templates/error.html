@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Problem', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="card center" style="max-width: 520px; margin: 3rem auto;">
+    <h1 th:text="${status == 404 ? 'Not found' : status == 403 ? 'Not allowed' : 'Something went wrong'}">Error</h1>
+    <p class="muted" th:text="${message != null and status != 500 ? message : 'Please try again. If it keeps happening, check the server log.'}">Message</p>
+    <a class="btn primary" th:href="@{/}">Back to the dashboard</a>
+  </div>
+</div>
+</body>
+</html>

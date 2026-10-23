@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${'Invoice ' + invoice.number}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/invoices}">Invoices</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${'Invoice ' + invoice.number}">Invoice</h1>
+      <p class="sub"><span th:text="${party.name}">party</span> · dated <span th:text="${@fmt.date(invoice.invoiceDate)}">d</span>
+        · due <span th:text="${@fmt.date(invoice.dueDate)}">d</span>
+        <span class="badge bad" th:if="${invoice.open and invoice.daysOverdue(today) > 0}" th:text="${invoice.daysOverdue(today) + ' days late'}">late</span></p>
+    </div>
+    <div class="actions">
+      <span class="badge" th:classappend="${invoice.status == 'PAID'} ? 'ok' : (${invoice.status == 'DISPUTED' or invoice.status == 'WRITTEN_OFF'} ? 'bad' : 'info')"
+            th:text="${@fmt.label(invoice.status)}">status</span>
+      <a class="btn" th:href="@{/invoices/{id}/pdf(id=${invoice.id})}" target="_blank">PDF with PODs</a>
+      <form th:action="@{/invoices/{id}/send(id=${invoice.id})}" method="post" class="inline-form" th:if="${invoice.draft or invoice.open}"
+            th:attr="data-confirm=${invoice.draft ? 'Send this invoice to ' + party.name + '?' : 'Send a reminder to ' + party.name + ' now?'}">
+        <button type="submit" class="btn primary" th:text="${invoice.draft ? 'Send invoice' : 'Remind now'}">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Invoice total</div><div class="value" th:text="${@fmt.rupees(invoice.total)}">₹</div>
+      <div class="note" th:text="${gstMode.label()}">gst</div></div>
+    <div class="kpi ok"><div class="label">Received</div><div class="value" th:text="${@fmt.rupees(invoice.received)}">₹</div>
+      <div class="note" th:if="${invoice.tds.signum() > 0}" th:text="${'+ TDS ' + @fmt.rupees(invoice.tds)}">tds</div></div>
+    <div class="kpi" th:classappend="${invoice.open and invoice.daysOverdue(today) > 0} ? 'bad'"><div class="label">Balance</div>
+      <div class="value" th:text="${@fmt.rupees(invoice.balance())}">₹</div></div>
+    <div class="kpi"><div class="label">Next reminder</div>
+      <div class="value" th:text="${invoice.chasing() and invoice.nextFollowUpOn != null ? @fmt.shortDate(invoice.nextFollowUpOn) : '–'}">date</div>
+      <div class="note" th:text="${invoice.chasePaused ? 'paused' : (invoice.status == 'DISPUTED' ? 'disputed: not chased' : invoice.followUpCount + ' sent so far')}">n</div></div>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card flush">
+        <div class="card-head"><h2>Bill</h2></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="l : ${lines}"><td th:text="${l.description}">line</td><td class="num" th:text="${@fmt.rupees(l.amount)}">₹</td></tr>
+            <tr><td class="right">Subtotal</td><td class="num" th:text="${@fmt.rupees(invoice.subtotal)}">₹</td></tr>
+            <tr th:if="${invoice.cgst.signum() > 0}"><td class="right">CGST + SGST</td><td class="num" th:text="${@fmt.rupees(invoice.cgst.add(invoice.sgst))}">₹</td></tr>
+            <tr th:if="${invoice.igst.signum() > 0}"><td class="right">IGST</td><td class="num" th:text="${@fmt.rupees(invoice.igst)}">₹</td></tr>
+            <tr th:if="${invoice.advanceReceived.signum() > 0}"><td class="right">Less advance received</td><td class="num" th:text="${'– ' + @fmt.rupees(invoice.advanceReceived)}">₹</td></tr>
+            <tr th:if="${invoice.roundOff.signum() != 0}"><td class="right">Round off</td><td class="num" th:text="${@fmt.rupees(invoice.roundOff)}">₹</td></tr>
+            <tr class="total"><td class="right">Payable</td><td class="num" th:text="${@fmt.rupees(invoice.total)}">₹</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Proof of delivery attached</h2>
+        <p class="muted" th:if="${pods.isEmpty()}">No POD on file for these trips.</p>
+        <div class="grid three">
+          <a th:each="p : ${pods}" th:href="@{/pods/{id}(id=${p.id})}" class="doc-view">
+            <img th:src="@{/files/{id}(id=${p.fileId})}" alt="POD">
+            <small th:text="${'LR ' + p.lrNumber}">LR</small>
+          </a>
+        </div>
+      </div>
+
+      <div class="card" th:if="${!messages.isEmpty()}">
+        <h2>Messages sent</h2>
+        <table>
+          <tbody>
+          <tr th:each="m : ${messages}">
+            <td class="nowrap" th:text="${@fmt.dateTime(m.createdAt)}">t</td>
+            <td th:text="${m.isWhatsApp() ? 'WhatsApp ' + @fmt.phone(m.recipient) : 'Email ' + m.recipient}">to</td>
+            <td><span class="badge" th:classappend="${m.failed()} ? 'bad' : (${m.status == 'SIMULATED'} ? 'info' : 'ok')" th:text="${m.status}">s</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" th:if="${invoice.open}">
+        <h2>Record a payment</h2>
+        <form th:action="@{/invoices/{id}/payments(id=${invoice.id})}" th:object="${payment}" method="post" class="stack">
+          <div class="form-grid">
+            <div class="field"><label for="amount">Amount received ₹</label><input type="number" step="0.01" min="0" id="amount" th:field="*{amount}" required></div>
+            <div class="field"><label for="tds">TDS deducted ₹</label><input type="number" step="0.01" min="0" id="tds" th:field="*{tds}"></div>
+            <div class="field"><label for="receivedOn">Received on</label><input type="date" id="receivedOn" th:field="*{receivedOn}" required></div>
+            <div class="field"><label for="mode">Mode</label>
+              <select id="mode" th:field="*{mode}"><option th:each="m : ${ {'NEFT','RTGS','IMPS','UPI','CHEQUE','CASH'} }" th:value="${m}" th:text="${m}">m</option></select></div>
+            <div class="field wide"><label for="reference">UTR / cheque no.</label><input type="text" id="reference" th:field="*{reference}"></div>
+            <label class="check"><input type="checkbox" th:field="*{thankYou}"> Send a thank-you on WhatsApp</label>
+          </div>
+          <div><button type="submit" class="btn ok">Save payment</button></div>
+        </form>
+      </div>
+
+      <div class="card" th:if="${invoice.open}">
+        <h2>Chasing</h2>
+        <form th:action="@{/invoices/{id}/promise(id=${invoice.id})}" method="post" class="filters">
+          <label for="promisedOn" class="label">Promised to pay by</label>
+          <input type="date" id="promisedOn" name="promisedOn" required style="max-width: 170px">
+          <input type="text" name="note" placeholder="Who said so?" style="max-width: 180px">
+          <button type="submit" class="btn small">Save promise</button>
+        </form>
+        <form th:action="@{/invoices/{id}/note(id=${invoice.id})}" method="post" class="filters">
+          <input type="text" name="note" placeholder="Call note, e.g. spoke to accounts, cheque next week" required>
+          <button type="submit" class="btn small">Add note</button>
+        </form>
+        <div class="actions">
+          <form th:action="@{/invoices/{id}/pause(id=${invoice.id})}" method="post" class="inline-form">
+            <input type="hidden" name="paused" th:value="${!invoice.chasePaused}">
+            <button type="submit" class="btn small" th:text="${invoice.chasePaused ? 'Resume reminders' : 'Pause reminders'}">Pause</button>
+          </form>
+          <form th:action="@{/invoices/{id}/status(id=${invoice.id})}" method="post" class="inline-form" th:if="${invoice.status != 'DISPUTED'}">
+            <input type="hidden" name="status" value="DISPUTED">
+            <button type="submit" class="btn small">Mark disputed</button>
+          </form>
+          <form th:action="@{/invoices/{id}/status(id=${invoice.id})}" method="post" class="inline-form" th:if="${invoice.status == 'DISPUTED'}">
+            <input type="hidden" name="status" value="SENT">
+            <button type="submit" class="btn small">Dispute resolved</button>
+          </form>
+          <form th:action="@{/invoices/{id}/status(id=${invoice.id})}" method="post" class="inline-form" data-confirm="Write off the balance? It will no longer be chased.">
+            <input type="hidden" name="status" value="WRITTEN_OFF">
+            <button type="submit" class="btn small danger">Write off</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>History</h2>
+        <ul class="timeline">
+          <li th:each="f : ${followUps}">
+            <div class="when" th:text="${@fmt.dateTime(f.happenedAt) + ' · ' + @fmt.label(f.kind) + (f.stage != null and f.stage > 0 ? ' ' + f.stage : '')}">when</div>
+            <div th:text="${f.note}">note</div>
+          </li>
+          <li th:if="${followUps.isEmpty()}"><div class="muted">Nothing yet.</div></li>
+        </ul>
+        <div th:if="${!payments.isEmpty()}">
+          <h3>Payments</h3>
+          <table><tbody>
+          <tr th:each="p : ${payments}"><td th:text="${@fmt.date(p.receivedOn)}">d</td><td th:text="${p.mode}">m</td>
+            <td class="num" th:text="${@fmt.rupees(p.amount)}">₹</td><td class="num muted" th:text="${p.tds.signum() > 0 ? 'TDS ' + @fmt.rupees(p.tds) : ''}">t</td></tr>
+          </tbody></table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 th:text="${party.name}">Party</h2>
+        <dl class="facts">
+          <dt>Contact</dt><dd th:text="${party.contactPerson != null ? party.contactPerson : '–'}">c</dd>
+          <dt>WhatsApp</dt><dd th:text="${party.phone != null ? @fmt.phone(party.phone) : 'not set'}">p</dd>
+          <dt>Email</dt><dd th:text="${party.email != null ? party.email : 'not set'}">e</dd>
+          <dt>Credit</dt><dd th:text="${party.creditDays + ' days'}">30</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

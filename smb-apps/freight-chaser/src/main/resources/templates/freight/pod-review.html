@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${'POD ' + (pod.lrNumber != null ? pod.lrNumber : '#' + pod.id)}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/pods}">PODs</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${pod.lrNumber != null ? 'POD for LR ' + pod.lrNumber : 'POD to check'}">POD</h1>
+      <p class="sub">
+        <span th:text="${driver != null ? 'From ' + driver.name + ' on WhatsApp' : 'Uploaded'}">From</span>,
+        <span th:text="${@fmt.dateTime(pod.receivedAt)}">time</span>
+        <span th:if="${pod.caption != null}" th:text="${' · caption “' + pod.caption + '”'}"></span>
+      </p>
+    </div>
+    <div>
+      <span class="badge ok" th:if="${pod.reviewStatus == 'CONFIRMED'}">confirmed</span>
+      <span class="badge warn" th:if="${pod.reviewStatus == 'NEEDS_REVIEW'}">needs your check</span>
+      <span class="badge bad" th:if="${pod.reviewStatus == 'REJECTED'}">rejected</span>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="doc-view">
+      <img th:if="${file.image}" th:src="@{/files/{id}(id=${file.id})}" alt="POD photo">
+      <iframe th:if="${file.pdf}" th:src="@{/files/{id}(id=${file.id})}" title="POD scan"></iframe>
+    </div>
+
+    <div>
+      <div class="callout info" th:if="${pod.readingStatus == 'READ'}">
+        Read automatically
+        (<span th:text="${@fmt.percent(pod.confidence * 100)}">90%</span> sure<span th:if="${pod.documentType != null and pod.documentType != 'POD'}"
+          th:text="${', looks like ' + @fmt.label(pod.documentType)}"></span>). Check the LR number and dates against the photo.
+      </div>
+      <div class="callout warn" th:if="${pod.readingStatus == 'MANUAL'}"
+           th:text="${pod.readingNote != null ? 'Not read automatically: ' + pod.readingNote : 'Not read automatically. Type the details from the photo.'}">
+        Not read automatically.
+      </div>
+      <div class="callout bad" th:if="${pod.remarks != null and pod.hasShortageRemark()}">
+        Receiver's remark: <strong th:text="${pod.remarks}">2 short</strong>. A shortage claim may be deducted from the freight.
+      </div>
+
+      <form th:action="@{/pods/{id}/confirm(id=${pod.id})}" th:object="${form}" method="post" class="card stack">
+        <h2>Details</h2>
+        <div class="form-grid">
+          <div class="field"><label for="lrNumber">LR number</label><input type="text" id="lrNumber" th:field="*{lrNumber}"></div>
+          <div class="field"><label for="lrDate">LR date</label><input type="date" id="lrDate" th:field="*{lrDate}"></div>
+          <div class="field"><label for="deliveryDate">Delivered on</label><input type="date" id="deliveryDate" th:field="*{deliveryDate}"></div>
+          <div class="field"><label for="vehicleNumber">Vehicle</label><input type="text" id="vehicleNumber" th:field="*{vehicleNumber}"></div>
+          <div class="field"><label for="origin">From</label><input type="text" id="origin" th:field="*{origin}"></div>
+          <div class="field"><label for="destination">To</label><input type="text" id="destination" th:field="*{destination}"></div>
+          <div class="field"><label for="consignor">Consignor</label><input type="text" id="consignor" th:field="*{consignor}"></div>
+          <div class="field"><label for="consignee">Consignee</label><input type="text" id="consignee" th:field="*{consignee}"></div>
+          <div class="field"><label for="packages">Packages</label><input type="text" id="packages" th:field="*{packages}"></div>
+          <div class="field wide"><label for="remarks">Receiver's remarks</label><input type="text" id="remarks" th:field="*{remarks}"></div>
+          <label class="check"><input type="checkbox" th:field="*{stampPresent}"> Receiver's stamp visible</label>
+          <label class="check"><input type="checkbox" th:field="*{signaturePresent}"> Receiver's signature visible</label>
+        </div>
+
+        <h2>Trip</h2>
+        <div class="callout" th:if="${linkedTrip != null}">
+          Matched to <a th:href="@{/trips/{id}(id=${linkedTrip.id})}" th:text="${'LR ' + linkedTrip.lrNumber}">LR</a>
+          <span th:text="${linkedTrip.route()}"></span>.
+        </div>
+        <div class="field">
+          <label for="tripId">Attach to</label>
+          <select id="tripId" th:field="*{tripId}">
+            <option value="">A new trip from these details</option>
+            <optgroup label="Same LR number" th:if="${!suggestions.isEmpty()}">
+              <option th:each="t : ${suggestions}" th:value="${t.id}" th:text="${'LR ' + t.lrNumber + ' · ' + t.route() + ' · ' + @fmt.label(t.status)}">trip</option>
+            </optgroup>
+            <optgroup label="On the road">
+              <option th:each="t : ${openTrips}" th:value="${t.id}" th:text="${'LR ' + t.lrNumber + ' · ' + t.route()}">trip</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="partyId">Bill to (for a new trip)</label>
+            <select id="partyId" th:field="*{partyId}">
+              <option value="">Choose later</option>
+              <option th:each="p : ${parties}" th:value="${p.id}" th:text="${p.name}">party</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="freightAmount">Freight ₹ (for a new trip)</label>
+            <input type="number" step="0.01" min="0" id="freightAmount" th:field="*{freightAmount}">
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn primary">Confirm POD</button>
+        </div>
+      </form>
+      <form th:action="@{/pods/{id}/reject(id=${pod.id})}" method="post" data-confirm="Mark this as not a POD?" th:if="${pod.reviewStatus != 'REJECTED'}">
+        <button type="submit" class="btn danger small">Not a POD / wrong photo</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

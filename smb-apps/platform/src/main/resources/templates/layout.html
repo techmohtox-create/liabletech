@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, content)"
+      th:style="${'--accent:' + brand.accent}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title th:text="${title} + ' · ' + ${brand.name}">Page</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <meta name="_csrf" th:if="${_csrf != null}" th:content="${_csrf.token}">
+  <meta name="_csrf_header" th:if="${_csrf != null}" th:content="${_csrf.headerName}">
+  <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<header class="topbar" th:if="${currentUser != null}">
+  <a class="brand" th:href="@{/}">
+    <span class="brand-mark" th:text="${#strings.substring(brand.name, 0, 1)}">A</span>
+    <span th:text="${brand.name}">App</span>
+  </a>
+  <input type="checkbox" id="nav-toggle" class="nav-toggle">
+  <label for="nav-toggle" class="nav-burger">Menu</label>
+  <nav class="mainnav" aria-label="Main">
+    <a th:each="item : ${nav}" th:href="@{${item.path}}" th:text="${item.label}"
+       th:classappend="${item.activeFor(requestPath)} ? 'active'">Item</a>
+    <a th:if="${simulator}" th:href="@{/dev/whatsapp}" class="sim"
+       th:classappend="${#strings.startsWith(requestPath, '/dev/whatsapp')} ? 'active'">WhatsApp simulator</a>
+  </nav>
+  <nav class="usernav" aria-label="Account">
+    <a th:href="@{/outbox}" th:classappend="${requestPath == '/outbox'} ? 'active'">Outbox</a>
+    <a th:href="@{/settings}" th:classappend="${requestPath == '/settings'} ? 'active'">Settings</a>
+    <form th:action="@{/logout}" method="post"><button type="submit" th:title="${currentUser.email}">Sign out</button></form>
+  </nav>
+</header>
+<main class="container">
+  <div class="flash notice" th:if="${notice}" th:text="${notice}">Saved</div>
+  <div class="flash error" th:if="${error}" th:text="${error}">Problem</div>
+  <th:block th:replace="${content}"></th:block>
+</main>
+<footer class="foot" th:if="${currentUser != null}">
+  <span th:text="${brand.name}">App</span> · runs locally · <a th:href="@{/settings}">plan and settings</a>
+</footer>
+</body>
+</html>

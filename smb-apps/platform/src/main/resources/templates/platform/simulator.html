@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('WhatsApp simulator', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>WhatsApp simulator</h1>
+      <p class="sub">Send messages as one of your contacts and see how the app answers. They take the same path as real
+        WhatsApp messages; replies are only recorded, never delivered.</p>
+    </div>
+  </div>
+
+  <div class="sim">
+    <div class="sim-contacts">
+      <a th:each="c : ${contacts}" class="sim-contact" th:classappend="${c.phone == phone} ? 'active'"
+         th:href="@{/dev/whatsapp(phone=${c.phone})}">
+        <strong th:text="${c.name}">Name</strong>
+        <small th:text="${c.role + ' · ' + @fmt.phone(c.phone)}">role</small>
+      </a>
+      <form th:action="@{/dev/whatsapp}" method="get" class="card stack">
+        <div class="field">
+          <label for="otherPhone">Another number</label>
+          <input type="tel" id="otherPhone" name="phone" placeholder="98765 43210">
+          <span class="hint">An unregistered number shows what strangers see.</span>
+        </div>
+        <button type="submit" class="btn small">Open chat</button>
+      </form>
+    </div>
+
+    <div class="phone" th:if="${phone != null}">
+      <div class="phone-head">
+        <span th:text="${contactName != null ? contactName : @fmt.phone(phone)}">Contact</span><br>
+        <small th:text="${'Chatting with ' + brand.name + ' as ' + @fmt.phone(phone)}">as</small>
+      </div>
+      <div class="thread" th:attr="data-refresh-url=@{/dev/whatsapp/thread(phone=${phone})}" data-refresh-every="2000">
+        <th:block th:fragment="thread">
+          <div th:each="b : ${thread}" class="bubble" th:classappend="${b.outgoing} ? 'out' : 'in'">
+            <th:block th:if="${b.fileId != null}">
+              <a th:if="${b.type == 'image'}" th:href="@{/files/{id}(id=${b.fileId})}" target="_blank"><img th:src="@{/files/{id}(id=${b.fileId})}" alt="Photo"></a>
+              <audio th:if="${b.type == 'audio'}" controls th:src="@{/files/{id}(id=${b.fileId})}"></audio>
+              <a th:if="${b.type == 'document'}" class="attach" th:href="@{/files/{id}(id=${b.fileId})}" target="_blank">📄 Document</a>
+            </th:block>
+            <span th:if="${b.text != null}" th:text="${b.text}">text</span>
+            <span class="meta">
+              <span th:text="${@fmt.dateTime(b.at)}">time</span>
+              <span th:if="${!b.outgoing and b.status == 'RECEIVED'}"> · processing…</span>
+              <span th:if="${!b.outgoing and b.status == 'UNROUTED'}"> · not registered</span>
+              <span th:if="${b.status == 'FAILED'}" th:text="${' · failed: ' + b.error}"> · failed</span>
+            </span>
+          </div>
+          <div th:if="${thread.isEmpty()}" class="empty">No messages yet. Send one below.</div>
+        </th:block>
+      </div>
+      <form class="composer" th:action="@{/dev/whatsapp}" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="phone" th:value="${phone}">
+        <input type="hidden" name="name" th:value="${contactName}">
+        <div class="chips" th:if="${!samples.isEmpty()}">
+          <button th:each="s : ${samples}" type="submit" name="sample" th:value="${s.id}" class="chip" th:text="${'📷 ' + s.label}">Sample</button>
+        </div>
+        <div class="composer-row">
+          <input type="text" name="text" placeholder="Message or caption" autocomplete="off">
+          <button type="submit" class="btn primary">Send</button>
+        </div>
+        <input type="file" name="file" accept="image/*,application/pdf,audio/*">
+      </form>
+    </div>
+    <div class="card" th:if="${phone == null}">
+      <p>Add a contact first (a driver, supervisor, technician or mechanic), or type any number on the left.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

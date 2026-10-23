@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${partyId == null ? 'Add a party' : 'Edit party'}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/parties}">Parties</a> /</div>
+  <h1 th:text="${partyId == null ? 'Add a party' : 'Edit party'}">Party</h1>
+  <form th:action="${partyId == null} ? @{/parties} : @{/parties/{id}(id=${partyId})}" th:object="${form}" method="post" class="card stack">
+    <div class="form-grid">
+      <div class="field wide"><label for="name">Name</label><input type="text" id="name" th:field="*{name}" th:errorclass="invalid" required>
+        <span class="err" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></span></div>
+      <div class="field"><label for="contactPerson">Contact person</label><input type="text" id="contactPerson" th:field="*{contactPerson}"></div>
+      <div class="field"><label for="phone">WhatsApp number</label><input type="tel" id="phone" th:field="*{phone}">
+        <span class="hint">Invoices and reminders go here.</span></div>
+      <div class="field"><label for="email">Accounts email</label><input type="email" id="email" th:field="*{email}" th:errorclass="invalid">
+        <span class="err" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span></div>
+      <div class="field"><label for="gstin">GSTIN</label><input type="text" id="gstin" th:field="*{gstin}" th:errorclass="invalid">
+        <span class="err" th:if="${#fields.hasErrors('gstin')}" th:errors="*{gstin}"></span></div>
+      <div class="field"><label for="creditDays">Credit period (days)</label><input type="number" min="0" max="365" id="creditDays" th:field="*{creditDays}"></div>
+      <div class="field wide"><label for="address">Address</label><textarea id="address" th:field="*{address}" rows="2"></textarea></div>
+    </div>
+    <div class="actions"><button type="submit" class="btn primary">Save</button><a class="btn" th:href="@{/parties}">Back</a></div>
+  </form>
+</div>
+</body>
+</html>

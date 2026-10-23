@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Chasing', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Payment chasing</h1>
+      <p class="sub">Reminders go out every morning at 10 am with the invoice and the signed POD attached, until the party pays.</p>
+    </div>
+    <div class="actions">
+      <form th:action="@{/chasing/digest}" method="post" class="inline-form"><button type="submit" class="btn">Send me today's summary</button></form>
+      <form th:action="@{/chasing/run}" method="post" class="inline-form"><button type="submit" class="btn primary">Send due reminders now</button></form>
+    </div>
+  </div>
+
+  <div class="split">
+    <form th:action="@{/chasing}" method="post" class="card stack">
+      <h2>Rules</h2>
+      <label class="check"><input type="checkbox" name="enabled" value="true" th:checked="${settings.enabled}"> Send reminders automatically</label>
+      <div class="field">
+        <label for="reminderDays">Remind on these days, counted from the due date</label>
+        <input type="text" id="reminderDays" name="reminderDays" th:value="${settings.reminderDays}">
+        <span class="hint">-2 is two days before the due date, 0 is the due date, 15 is fifteen days late.</span>
+      </div>
+      <div class="field">
+        <label for="repeatEveryDays">After that, remind every (days)</label>
+        <input type="number" min="1" max="90" id="repeatEveryDays" name="repeatEveryDays" th:value="${settings.repeatEveryDays}">
+      </div>
+      <label class="check"><input type="checkbox" name="sendWhatsapp" value="true" th:checked="${settings.sendWhatsapp}"> WhatsApp to the party</label>
+      <label class="check"><input type="checkbox" name="sendEmail" value="true" th:checked="${settings.sendEmail}"> Email to the party</label>
+      <label class="check"><input type="checkbox" name="ownerDigest" value="true" th:checked="${settings.ownerDigest}"> Send me a summary on WhatsApp every evening</label>
+      <h2>Invoices</h2>
+      <div class="form-grid">
+        <div class="field"><label for="invoicePrefix">Number prefix</label><input type="text" id="invoicePrefix" name="invoicePrefix" th:value="${settings.invoicePrefix}" maxlength="10">
+          <span class="hint" th:text="${'Numbers look like ' + settings.invoicePrefix + '/2026-27/0001'}">hint</span></div>
+        <div class="field"><label for="defaultGstMode">Default GST</label>
+          <select id="defaultGstMode" name="defaultGstMode">
+            <option th:each="m : ${gstModes}" th:value="${m}" th:text="${m.label()}" th:selected="${m.name() == settings.defaultGstMode}">m</option>
+          </select></div>
+        <div class="field"><label for="defaultGstRate">Default GST rate %</label><input type="number" step="0.01" min="0" max="28" id="defaultGstRate" name="defaultGstRate" th:value="${settings.defaultGstRate}"></div>
+        <div class="field wide"><label for="invoiceTerms">Terms printed on invoices</label><textarea id="invoiceTerms" name="invoiceTerms" rows="2" th:text="${settings.invoiceTerms}"></textarea></div>
+      </div>
+      <div><button type="submit" class="btn primary">Save rules</button></div>
+    </form>
+
+    <div class="card">
+      <h2>Due today</h2>
+      <p class="muted" th:if="${due.isEmpty()}">No reminders due today.</p>
+      <table th:unless="${due.isEmpty()}">
+        <thead><tr><th>Invoice</th><th class="num">Balance</th><th>Due</th><th class="num">Sent so far</th></tr></thead>
+        <tbody>
+        <tr th:each="i : ${due}">
+          <td><a th:href="@{/invoices/{id}(id=${i.id})}" th:text="${i.number}">INV</a></td>
+          <td class="num" th:text="${@fmt.rupees(i.balance())}">₹</td>
+          <td th:text="${@fmt.relativeDays(i.dueDate)}">d</td>
+          <td class="num" th:text="${i.followUpCount}">0</td>
+        </tr>
+        </tbody>
+      </table>
+      <h3 style="margin-top: 1.5rem">WhatsApp templates</h3>
+      <p class="muted">Messages to parties start the conversation, so on the WhatsApp Cloud API they need approved templates
+        named <span class="mono">freight_invoice</span> and <span class="mono">freight_payment_reminder</span> (see the README).
+        In simulator mode the full text is recorded in the outbox instead.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

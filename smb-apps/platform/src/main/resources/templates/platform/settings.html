@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Settings', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Settings</h1>
+      <p class="sub">Business details printed on invoices and messages, your plan, and who can sign in.</p>
+    </div>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card">
+        <h2>Business details</h2>
+        <form th:action="@{/settings}" th:object="${profile}" method="post" class="stack">
+          <div class="form-grid">
+            <div class="field wide">
+              <label for="name">Business name</label>
+              <input type="text" id="name" th:field="*{name}" th:errorclass="invalid" required>
+              <span class="err" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></span>
+            </div>
+            <div class="field">
+              <label for="ownerName">Owner</label>
+              <input type="text" id="ownerName" th:field="*{ownerName}">
+            </div>
+            <div class="field">
+              <label for="phone">Mobile (WhatsApp)</label>
+              <input type="tel" id="phone" th:field="*{phone}">
+            </div>
+            <div class="field">
+              <label for="email">Email (replies come here)</label>
+              <input type="email" id="email" th:field="*{email}" th:errorclass="invalid">
+              <span class="err" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
+            </div>
+            <div class="field wide">
+              <label for="address">Address</label>
+              <textarea id="address" th:field="*{address}" rows="2"></textarea>
+            </div>
+            <div class="field">
+              <label for="gstin">GSTIN</label>
+              <input type="text" id="gstin" th:field="*{gstin}" th:errorclass="invalid" placeholder="27ABCDE1234F1Z5">
+              <span class="err" th:if="${#fields.hasErrors('gstin')}" th:errors="*{gstin}"></span>
+            </div>
+            <div class="field">
+              <label for="pan">PAN</label>
+              <input type="text" id="pan" th:field="*{pan}" th:errorclass="invalid">
+              <span class="err" th:if="${#fields.hasErrors('pan')}" th:errors="*{pan}"></span>
+            </div>
+            <div class="field">
+              <label for="upiId">UPI ID (for pay links)</label>
+              <input type="text" id="upiId" th:field="*{upiId}" th:errorclass="invalid" placeholder="business@okhdfc">
+              <span class="err" th:if="${#fields.hasErrors('upiId')}" th:errors="*{upiId}"></span>
+            </div>
+            <div class="field">
+              <label for="bankAccountName">Bank account name</label>
+              <input type="text" id="bankAccountName" th:field="*{bankAccountName}">
+            </div>
+            <div class="field">
+              <label for="bankAccountNumber">Account number</label>
+              <input type="text" id="bankAccountNumber" th:field="*{bankAccountNumber}" th:errorclass="invalid">
+              <span class="err" th:if="${#fields.hasErrors('bankAccountNumber')}" th:errors="*{bankAccountNumber}"></span>
+            </div>
+            <div class="field">
+              <label for="bankIfsc">IFSC</label>
+              <input type="text" id="bankIfsc" th:field="*{bankIfsc}" th:errorclass="invalid">
+              <span class="err" th:if="${#fields.hasErrors('bankIfsc')}" th:errors="*{bankIfsc}"></span>
+            </div>
+            <div class="field">
+              <label for="bankName">Bank and branch</label>
+              <input type="text" id="bankName" th:field="*{bankName}">
+            </div>
+          </div>
+          <div><button type="submit" class="btn primary">Save details</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Plan</h2>
+        <dl class="facts">
+          <dt>Plan</dt><dd th:text="${plan.planName}">Plan</dd>
+          <dt>Price</dt><dd th:text="${plan.price}">₹299/month</dd>
+          <dt>This month</dt><dd class="strong" th:text="${@fmt.rupees(plan.monthlyAmount)}">₹299</dd>
+          <dt>Free trial</dt>
+          <dd th:text="${account.trialEndsOn == null ? '–' : (@fmt.daysFromToday(account.trialEndsOn) >= 0 ? 'until ' + @fmt.date(account.trialEndsOn) : 'ended ' + @fmt.date(account.trialEndsOn))}">until</dd>
+        </dl>
+        <ul class="muted" th:if="${!plan.details.isEmpty()}">
+          <li th:each="line : ${plan.details}" th:text="${line}">detail</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Photo reading (AI)</h2>
+        <p th:if="${aiEnabled}"><span class="badge ok">On</span> Model <span class="mono" th:text="${aiModel}">model</span></p>
+        <p th:unless="${aiEnabled}"><span class="badge warn">Off</span> Set <span class="mono">ANTHROPIC_API_KEY</span>
+          to read photos automatically. Until then every document opens a form to fill in by hand.</p>
+        <p class="muted">This month: <span th:text="${aiUsage.calls}">0</span> documents read,
+          <span th:text="${aiUsage.inputTokens}">0</span> input and <span th:text="${aiUsage.outputTokens}">0</span> output tokens.</p>
+      </div>
+
+      <div class="card">
+        <h2>WhatsApp</h2>
+        <p th:if="${whatsApp.simulator()}"><span class="badge info">Simulator</span> Messages stay on this computer.
+          Try them on the <a th:href="@{/dev/whatsapp}">WhatsApp simulator</a>; everything sent is in the <a th:href="@{/outbox}">outbox</a>.</p>
+        <p th:unless="${whatsApp.simulator()}"><span class="badge ok">Cloud API</span> Webhook:
+          <span class="mono">/webhooks/whatsapp</span></p>
+        <form th:action="@{/settings/whatsapp-number}" method="post" class="stack">
+          <div class="field">
+            <label for="phoneNumberId">Your own WhatsApp Business number (phone number ID)</label>
+            <input type="text" id="phoneNumberId" name="phoneNumberId" th:value="${account.whatsappPhoneNumberId}"
+                   placeholder="Leave empty to use the shared number">
+            <span class="hint">Messages to this number belong to your business. Leave empty to use the platform's number,
+              where drivers and staff are recognised by their mobile number.</span>
+          </div>
+          <div><button type="submit" class="btn small">Save number</button></div>
+        </form>
+      </div>
+
+      <div class="card" id="team">
+        <h2>Team logins</h2>
+        <table>
+          <tbody>
+          <tr th:each="member : ${team}">
+            <td><span th:text="${member.name}">Name</span><br><small th:text="${member.email}">email</small></td>
+            <td><span class="badge" th:classappend="${member.owner} ? 'accent'" th:text="${member.role}">role</span>
+              <span class="badge bad" th:unless="${member.active}">disabled</span></td>
+            <td class="right">
+              <form th:if="${currentUser.owner and !member.owner}" th:action="@{/settings/team/{id}/active(id=${member.id})}" method="post" class="inline-form">
+                <input type="hidden" name="active" th:value="${!member.active}">
+                <button type="submit" class="btn small" th:text="${member.active ? 'Disable' : 'Enable'}">Disable</button>
+              </form>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+        <form th:if="${currentUser.owner}" th:action="@{/settings/team}" method="post" class="stack" style="margin-top: 1rem">
+          <div class="form-grid">
+            <div class="field"><label for="staffName">Name</label><input type="text" id="staffName" name="name" required></div>
+            <div class="field"><label for="staffEmail">Email</label><input type="email" id="staffEmail" name="email" required></div>
+            <div class="field"><label for="staffPassword">Password</label><input type="password" id="staffPassword" name="password" minlength="8" required></div>
+          </div>
+          <div><button type="submit" class="btn small">Add staff login</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

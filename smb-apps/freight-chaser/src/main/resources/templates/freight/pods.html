@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('PODs', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Proof of delivery</h1>
+      <p class="sub">Photos drivers send on WhatsApp, read and matched to trips by LR number.</p>
+    </div>
+    <div class="chips">
+      <a class="chip" th:href="@{/pods(show='review')}" th:classappend="${show == 'review'} ? 'active'">To check</a>
+      <a class="chip" th:href="@{/pods(show='confirmed')}" th:classappend="${show == 'confirmed'} ? 'active'">Confirmed</a>
+      <a class="chip" th:href="@{/pods(show='all')}" th:classappend="${show == 'all'} ? 'active'">All</a>
+    </div>
+  </div>
+
+  <div class="callout warn" th:unless="${aiEnabled}">
+    Automatic reading is off (no <span class="mono">ANTHROPIC_API_KEY</span>). PODs still arrive and are matched by
+    the LR number in the caption; open each one to type the details.
+  </div>
+
+  <div class="card">
+    <form th:action="@{/pods/upload}" method="post" enctype="multipart/form-data" class="filters">
+      <strong>Got a POD by courier or email?</strong>
+      <input type="file" name="file" accept="image/*,application/pdf" required>
+      <input type="text" name="caption" placeholder="LR number (optional)" style="max-width: 200px">
+      <button type="submit" class="btn small primary">Upload</button>
+    </form>
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead>
+        <tr><th></th><th>LR</th><th>From</th><th>Delivered</th><th>Stamp / sign</th><th>Read</th><th>Trip</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="p : ${pods}" th:attr="data-href=@{/pods/{id}(id=${p.id})}" class="row-link">
+          <td><img class="thumb" th:src="@{/files/{id}(id=${p.fileId})}" alt="POD photo"></td>
+          <td><a th:href="@{/pods/{id}(id=${p.id})}" th:text="${p.lrNumber != null ? p.lrNumber : 'not read'}">4521</a>
+            <div class="err" th:if="${p.remarks != null and (#strings.containsIgnoreCase(p.remarks, 'short') or #strings.containsIgnoreCase(p.remarks, 'damage'))}"
+                 th:text="${p.remarks}">2 short</div></td>
+          <td><span th:text="${p.driverName != null ? p.driverName : 'Upload'}">Driver</span><br><small th:text="${@fmt.ago(p.receivedAt)}">time</small></td>
+          <td th:text="${@fmt.date(p.deliveryDate)}">date</td>
+          <td>
+            <span class="badge" th:classappend="${p.stampPresent} ? 'ok' : 'warn'" th:text="${p.stampPresent == null ? '–' : (p.stampPresent ? 'stamp' : 'no stamp')}">stamp</span>
+            <span class="badge" th:classappend="${p.signaturePresent} ? 'ok' : 'warn'" th:text="${p.signaturePresent == null ? '–' : (p.signaturePresent ? 'signed' : 'no sign')}">sign</span>
+          </td>
+          <td>
+            <span class="confidence" th:if="${p.confidence != null}">
+              <span class="meter" th:classappend="${p.confidence < 0.5} ? 'low' : (${p.confidence < 0.8} ? 'mid' : '')"><span th:style="${'width:' + (p.confidence * 100) + '%'}"></span></span>
+              <span th:text="${@fmt.percent(p.confidence * 100)}">90%</span>
+            </span>
+            <span class="muted" th:if="${p.confidence == null}">by hand</span>
+          </td>
+          <td><a th:if="${p.tripId != null}" th:href="@{/trips/{id}(id=${p.tripId})}" th:text="${'LR ' + p.tripLr}">trip</a>
+            <span class="muted" th:if="${p.tripId == null}">not linked</span></td>
+          <td>
+            <span class="badge ok" th:if="${p.reviewStatus == 'CONFIRMED'}">confirmed</span>
+            <span class="badge warn" th:if="${p.reviewStatus == 'NEEDS_REVIEW'}">check</span>
+            <span class="badge bad" th:if="${p.reviewStatus == 'REJECTED'}">rejected</span>
+          </td>
+        </tr>
+        <tr th:if="${pods.isEmpty()}"><td colspan="8" class="empty">Nothing here. When drivers send POD photos on WhatsApp they arrive in this list.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

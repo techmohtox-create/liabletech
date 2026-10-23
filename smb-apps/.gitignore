@@ -1,0 +1,14 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+# Local data: H2 database files, uploaded photos and PDFs, the remember-me key.
+data/
+*.log
+
+### IDEs ###
+.idea
+*.iml
+.vscode/
+.classpath
+.factorypath
+.project
+.settings

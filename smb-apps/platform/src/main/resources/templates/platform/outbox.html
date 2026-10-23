@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Outbox', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Outbox</h1>
+      <p class="sub">Every WhatsApp message and email sent for your business. In simulator mode they are recorded here instead of being delivered.</p>
+    </div>
+    <div class="chips">
+      <a class="chip" th:href="@{/outbox}" th:classappend="${channel == null} ? 'active'">All</a>
+      <a class="chip" th:href="@{/outbox(channel='WHATSAPP')}" th:classappend="${channel == 'WHATSAPP'} ? 'active'">WhatsApp</a>
+      <a class="chip" th:href="@{/outbox(channel='EMAIL')}" th:classappend="${channel == 'EMAIL'} ? 'active'">Email</a>
+    </div>
+  </div>
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead>
+        <tr><th>When</th><th>To</th><th>Message</th><th>Files</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="m : ${messages}">
+          <td class="nowrap"><span th:text="${@fmt.dateTime(m.createdAt)}">time</span><br>
+            <small th:text="${m.channel == 'WHATSAPP' ? 'WhatsApp' : 'Email'}">channel</small></td>
+          <td class="nowrap" th:text="${m.channel == 'WHATSAPP' ? @fmt.phone(m.recipient) : m.recipient}">to</td>
+          <td>
+            <div class="strong" th:if="${m.subject}" th:text="${m.subject}">subject</div>
+            <div style="white-space: pre-wrap" th:text="${#strings.abbreviate(m.body, 400)}">body</div>
+            <small class="muted" th:if="${m.templateName}">Template <span class="mono" th:text="${m.templateName}">t</span></small>
+          </td>
+          <td><a th:each="fileId : ${m.attachmentIds()}" th:href="@{/files/{id}(id=${fileId})}" target="_blank" class="nowrap">File&nbsp;<span th:text="${fileId}">1</span><br></a></td>
+          <td>
+            <span class="badge" th:classappend="${m.status == 'FAILED'} ? 'bad' : (${m.status == 'SIMULATED'} ? 'info' : 'ok')" th:text="${m.status}">SENT</span>
+            <div class="err" th:if="${m.error}" th:text="${m.error}">error</div>
+          </td>
+        </tr>
+        <tr th:if="${messages.isEmpty()}"><td colspan="5" class="empty">Nothing sent yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

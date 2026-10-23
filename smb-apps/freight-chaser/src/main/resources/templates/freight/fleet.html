@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Fleet', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Fleet</h1>
+      <p class="sub">Drivers are recognised by their WhatsApp number: register it once and their POD photos land in your inbox.</p>
+    </div>
+  </div>
+  <div class="grid two">
+    <div class="card">
+      <h2>Drivers</h2>
+      <table>
+        <thead><tr><th>Driver</th><th>Truck</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="d : ${drivers}">
+          <td colspan="3">
+            <form th:action="@{/fleet/drivers/{id}(id=${d.id})}" method="post" class="filters" style="margin: 0">
+              <input type="text" name="name" th:value="${d.name}" style="max-width: 170px" aria-label="Name">
+              <span class="mono" th:text="${@fmt.phone(d.phone)}">phone</span>
+              <select name="vehicleId" style="max-width: 150px" aria-label="Truck">
+                <option value="">No truck</option>
+                <option th:each="v : ${vehicles}" th:value="${v.id}" th:text="${v.registration}" th:selected="${v.id == d.vehicleId}">v</option>
+              </select>
+              <label class="check"><input type="checkbox" name="active" value="true" th:checked="${d.active}"> active</label>
+              <button type="submit" class="btn small">Save</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${drivers.isEmpty()}"><td colspan="3" class="empty">No drivers yet.</td></tr>
+        </tbody>
+      </table>
+      <form th:action="@{/fleet/drivers}" method="post" class="stack" style="margin-top: 1rem">
+        <h3>Add a driver</h3>
+        <div class="form-grid">
+          <div class="field"><label for="dname">Name</label><input type="text" id="dname" name="name" required></div>
+          <div class="field"><label for="dphone">WhatsApp number</label><input type="tel" id="dphone" name="phone" placeholder="98765 43210" required></div>
+          <div class="field"><label for="dvehicle">Usual truck</label>
+            <select id="dvehicle" name="vehicleId"><option value="">None</option>
+              <option th:each="v : ${vehicles}" th:value="${v.id}" th:text="${v.registration}">v</option></select></div>
+        </div>
+        <div><button type="submit" class="btn primary small">Add driver</button></div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Trucks</h2>
+      <table>
+        <thead><tr><th>Registration</th><th>Type</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="v : ${vehicles}">
+          <td class="mono" th:text="${v.registration}">MH12</td>
+          <td th:text="${v.description}">type</td>
+          <td class="right">
+            <form th:action="@{/fleet/vehicles/{id}/active(id=${v.id})}" method="post" class="inline-form">
+              <input type="hidden" name="active" th:value="${!v.active}">
+              <button type="submit" class="btn small" th:text="${v.active ? 'Retire' : 'Activate'}">Retire</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${vehicles.isEmpty()}"><td colspan="3" class="empty">No trucks yet.</td></tr>
+        </tbody>
+      </table>
+      <form th:action="@{/fleet/vehicles}" method="post" class="stack" style="margin-top: 1rem">
+        <h3>Add a truck</h3>
+        <div class="form-grid">
+          <div class="field"><label for="reg">Registration number</label><input type="text" id="reg" name="registration" placeholder="MH12AB1234" required></div>
+          <div class="field"><label for="desc">Type / body</label><input type="text" id="desc" name="description" placeholder="32 ft MXL"></div>
+        </div>
+        <div><button type="submit" class="btn primary small">Add truck</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

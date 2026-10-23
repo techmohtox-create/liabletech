@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Trips', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Trips</h1>
+      <p class="sub" th:if="${unbilled.trips > 0}">
+        <strong th:text="${@fmt.plural(unbilled.trips, 'delivered trip', 'delivered trips')}">2 trips</strong> worth
+        <strong th:text="${@fmt.rupees0(unbilled.amount)}">₹0</strong> can be billed now.
+      </p>
+    </div>
+    <div class="actions"><a class="btn primary" th:href="@{/trips/new}">New trip</a></div>
+  </div>
+
+  <div class="filters">
+    <div class="chips">
+      <a class="chip" th:href="@{/trips}" th:classappend="${status == null} ? 'active'">All</a>
+      <a class="chip" th:href="@{/trips(status='IN_TRANSIT')}" th:classappend="${status == 'IN_TRANSIT'} ? 'active'">On the road</a>
+      <a class="chip" th:href="@{/trips(status='DELIVERED')}" th:classappend="${status == 'DELIVERED'} ? 'active'">Delivered, to bill</a>
+      <a class="chip" th:href="@{/trips(status='INVOICED')}" th:classappend="${status == 'INVOICED'} ? 'active'">Invoiced</a>
+      <a class="chip" th:href="@{/trips(status='PAID')}" th:classappend="${status == 'PAID'} ? 'active'">Paid</a>
+    </div>
+    <input type="search" placeholder="Search LR, party, route" data-filter-table="#trips">
+  </div>
+
+  <form th:action="@{/invoices/new}" method="get">
+    <div class="card flush">
+      <div class="table-wrap">
+        <table id="trips">
+          <thead>
+          <tr><th></th><th>LR</th><th>Date</th><th>Party</th><th>Route</th><th>Truck</th><th class="num">Freight</th><th>POD</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+          <tr th:each="t : ${trips}">
+            <td><input type="checkbox" name="trip" th:value="${t.id}" th:if="${t.billableNow()}" th:aria-label="${'Bill LR ' + t.lrNumber}"></td>
+            <td><a th:href="@{/trips/{id}(id=${t.id})}" th:text="${t.lrNumber != null ? t.lrNumber : '#' + t.id}">LR</a></td>
+            <td class="nowrap" th:text="${@fmt.date(t.lrDate)}">date</td>
+            <td th:text="${t.partyName != null ? t.partyName : '–'}">party</td>
+            <td th:text="${t.route()}">route</td>
+            <td class="mono" th:text="${t.vehicle != null ? t.vehicle : '–'}">truck</td>
+            <td class="num" th:text="${@fmt.rupees(t.freightAmount)}">₹0</td>
+            <td><span class="badge" th:classappend="${t.pods > 0} ? 'ok' : ''" th:text="${t.pods > 0 ? 'yes' : 'no'}">no</span></td>
+            <td><span class="badge" th:classappend="${t.status == 'DELIVERED'} ? 'warn' : (${t.status == 'PAID'} ? 'ok' : (${t.status == 'INVOICED'} ? 'info' : ''))"
+                      th:text="${t.status == 'DELIVERED' ? 'to bill' : @fmt.label(t.status)}">status</span></td>
+          </tr>
+          <tr th:if="${trips.isEmpty()}"><td colspan="9" class="empty">No trips yet. Add one, or let a driver's POD create it.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="actions" th:if="${unbilled.trips > 0}">
+      <button type="submit" class="btn primary">Bill ticked trips</button>
+      <span class="muted">Tick delivered trips of one party to put them on one invoice.</span>
+    </div>
+  </form>
+</div>
+</body>
+</html>

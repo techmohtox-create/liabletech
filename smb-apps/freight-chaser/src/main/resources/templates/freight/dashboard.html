@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Dashboard', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Freight money</h1>
+      <p class="sub">What is owed, what is late, and what you can bill today.</p>
+    </div>
+    <div class="actions">
+      <a class="btn" th:href="@{/trips/new}">New trip</a>
+      <a class="btn primary" th:href="@{/trips(status='DELIVERED')}">Bill delivered trips</a>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <a class="kpi" th:href="@{/invoices(show='open')}">
+      <div class="label">Outstanding</div>
+      <div class="value" th:text="${@fmt.rupees0(outstanding)}">₹0</div>
+      <div class="note">on open invoices</div>
+    </a>
+    <a class="kpi" th:classappend="${overdue.signum() > 0} ? 'bad'" th:href="@{/invoices(show='overdue')}">
+      <div class="label">Overdue</div>
+      <div class="value" th:text="${@fmt.rupees0(overdue)}">₹0</div>
+      <div class="note">past the credit period</div>
+    </a>
+    <a class="kpi" th:classappend="${unbilled.trips > 0} ? 'warn'" th:href="@{/trips(status='DELIVERED')}">
+      <div class="label">Ready to bill</div>
+      <div class="value" th:text="${@fmt.rupees0(unbilled.amount)}">₹0</div>
+      <div class="note" th:text="${@fmt.plural(unbilled.trips, 'delivered trip', 'delivered trips')} + ' with POD'">trips</div>
+    </a>
+    <a class="kpi" th:classappend="${podsToReview > 0} ? 'warn'" th:href="@{/pods}">
+      <div class="label">PODs to check</div>
+      <div class="value" th:text="${podsToReview}">0</div>
+      <div class="note" th:text="${inTransit} + ' trips on the road'">on the road</div>
+    </a>
+    <div class="kpi ok">
+      <div class="label">Collected this month</div>
+      <div class="value" th:text="${@fmt.rupees0(collected)}">₹0</div>
+      <div class="note">including TDS</div>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="card">
+      <div class="card-head"><h2>How late the money is</h2><a th:href="@{/invoices(show='open')}">Open invoices</a></div>
+      <div class="bars">
+        <div class="bar-row" th:each="b : ${ageing}">
+          <span th:text="${b.label}">bucket</span>
+          <span class="bar-track"><span class="bar-fill" th:classappend="${b.tone}" th:style="${'width:' + b.percent + '%'}"></span></span>
+          <span class="amount" th:text="${@fmt.rupees0(b.amount)}">₹0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Reminders due today</h2>
+        <form th:action="@{/chasing/run}" method="post" class="inline-form" th:if="${!dueToday.isEmpty()}">
+          <button type="submit" class="btn small primary">Send now</button>
+        </form>
+      </div>
+      <p class="muted" th:if="${dueToday.isEmpty()}">Nothing due. Reminders go out automatically at 10 am.</p>
+      <table th:unless="${dueToday.isEmpty()}">
+        <tbody>
+        <tr th:each="inv : ${dueToday}" th:attr="data-href=@{/invoices/{id}(id=${inv.id})}" class="row-link">
+          <td><a th:href="@{/invoices/{id}(id=${inv.id})}" th:text="${inv.number}">INV</a></td>
+          <td class="num" th:text="${@fmt.rupees(inv.balance())}">₹0</td>
+          <td class="nowrap"><span class="badge" th:classappend="${inv.daysOverdue(today) > 0} ? 'bad' : 'info'"
+                th:text="${inv.daysOverdue(today) > 0 ? inv.daysOverdue(today) + ' days late' : 'due ' + @fmt.relativeDays(inv.dueDate)}">late</span></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="card flush">
+      <div class="card-head"><h2>Who owes you</h2><a th:href="@{/parties}">All parties</a></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Party</th><th class="num">Outstanding</th><th class="num">Overdue</th><th class="num">Usually pays in</th></tr></thead>
+          <tbody>
+          <tr th:each="p : ${parties}">
+            <td><a th:href="@{/invoices(show='open', party=${p.id})}" th:text="${p.name}">Party</a></td>
+            <td class="num" th:text="${@fmt.rupees0(p.outstanding)}">₹0</td>
+            <td class="num" th:text="${p.overdue.signum() > 0 ? @fmt.rupees0(p.overdue) : '–'}">₹0</td>
+            <td class="num">
+              <span th:if="${p.avgDaysToPay == null}" class="muted">–</span>
+              <span th:unless="${p.avgDaysToPay == null}" th:classappend="${p.slowPayer()} ? 'badge bad' : ''"
+                    th:text="${#numbers.formatDecimal(p.avgDaysToPay, 1, 0)} + ' days'">30 days</span>
+            </td>
+          </tr>
+          <tr th:if="${parties.isEmpty()}"><td colspan="4" class="empty">Nobody owes you anything right now.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card flush">
+      <div class="card-head"><h2>Latest PODs from drivers</h2><a th:href="@{/pods(show='all')}">All PODs</a></div>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+          <tr th:each="p : ${recentPods}" th:attr="data-href=@{/pods/{id}(id=${p.id})}" class="row-link">
+            <td><img class="thumb" th:src="@{/files/{id}(id=${p.fileId})}" alt="POD"></td>
+            <td><strong th:text="${p.lrNumber != null ? 'LR ' + p.lrNumber : 'LR not read'}">LR</strong><br>
+              <small th:text="${(p.driverName != null ? p.driverName : 'Uploaded') + ' · ' + @fmt.ago(p.receivedAt)}">driver</small></td>
+            <td class="right">
+              <span class="badge ok" th:if="${p.reviewStatus == 'CONFIRMED'}">confirmed</span>
+              <span class="badge warn" th:if="${p.reviewStatus == 'NEEDS_REVIEW'}">check</span>
+              <span class="badge bad" th:if="${p.reviewStatus == 'REJECTED'}">rejected</span>
+            </td>
+          </tr>
+          <tr th:if="${recentPods.isEmpty()}"><td class="empty">Drivers' POD photos appear here.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

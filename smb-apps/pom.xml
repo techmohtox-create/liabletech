@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>4.1.1</version>
+		<relativePath/> <!-- lookup parent from repository -->
+	</parent>
+	<groupId>com.liabletech.smb</groupId>
+	<artifactId>smb-apps</artifactId>
+	<version>0.1.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>smb-apps</name>
+	<description>Photo-and-WhatsApp apps for small Indian businesses, built on one shared platform module.</description>
+
+	<modules>
+		<module>platform</module>
+		<module>freight-chaser</module>
+	</modules>
+
+	<properties>
+		<java.version>21</java.version>
+		<anthropic-java.version>3.2.0</anthropic-java.version>
+		<openpdf.version>3.0.5</openpdf.version>
+		<pdfbox.version>3.0.8</pdfbox.version>
+	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.liabletech.smb</groupId>
+				<artifactId>platform</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.liabletech.smb</groupId>
+				<artifactId>platform</artifactId>
+				<version>${project.version}</version>
+				<type>test-jar</type>
+			</dependency>
+			<dependency>
+				<groupId>com.anthropic</groupId>
+				<artifactId>anthropic-java</artifactId>
+				<version>${anthropic-java.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.librepdf</groupId>
+				<artifactId>openpdf</artifactId>
+				<version>${openpdf.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.apache.pdfbox</groupId>
+				<artifactId>pdfbox</artifactId>
+				<version>${pdfbox.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+</project>

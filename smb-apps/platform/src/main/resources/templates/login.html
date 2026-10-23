@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Sign in', ~{::content})}">
+<body>
+<div th:fragment="content" class="auth">
+  <a class="brand" th:href="@{/}"><span class="brand-mark" th:text="${#strings.substring(brand.name, 0, 1)}">A</span>
+    <span th:text="${brand.name}">App</span></a>
+  <p class="tagline" th:text="${brand.tagline}">Tagline</p>
+
+  <div class="flash notice" th:if="${param.registered}">Your account is ready. Sign in to start your free trial.</div>
+  <div class="flash notice" th:if="${param.logout}">You have signed out.</div>
+  <div class="flash error" th:if="${param.error}">That email and password do not match.</div>
+
+  <div class="card">
+    <form th:action="@{/login}" method="post" class="stack">
+      <div class="field">
+        <label for="username">Email</label>
+        <input type="email" id="username" name="username" autocomplete="username" required autofocus>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required>
+      </div>
+      <label class="check"><input type="checkbox" name="remember-me" checked> Keep me signed in on this device</label>
+      <button type="submit" class="btn primary block">Sign in</button>
+    </form>
+  </div>
+  <p class="center">New here? <a th:href="@{/signup}">Create a free account</a></p>
+
+  <div class="callout info demo-box" th:if="${demo != null}">
+    <strong>Demo account</strong><br>
+    Email <span class="mono" th:text="${demo.email}">demo</span> ·
+    password <span class="mono" th:text="${demo.password}">demo</span>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${'LR ' + (trip.lrNumber != null ? trip.lrNumber : trip.id)}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/trips}">Trips</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${'LR ' + (trip.lrNumber != null ? trip.lrNumber : '#' + trip.id)}">LR</h1>
+      <p class="sub" th:text="${trip.route()}">route</p>
+    </div>
+    <div class="actions">
+      <span class="badge" th:classappend="${trip.status == 'DELIVERED'} ? 'warn' : (${trip.status == 'PAID'} ? 'ok' : (${trip.status == 'INVOICED'} ? 'info' : ''))"
+            th:text="${trip.billableNow() ? 'ready to bill' : @fmt.label(trip.status)}">status</span>
+      <a class="btn" th:href="@{/trips/{id}/edit(id=${trip.id})}">Edit</a>
+      <a class="btn primary" th:if="${trip.billableNow()}" th:href="@{/invoices/new(trip=${trip.id})}">Bill this trip</a>
+      <a class="btn" th:if="${trip.invoiceId != null}" th:href="@{/invoices/{id}(id=${trip.invoiceId})}">Invoice</a>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="card">
+      <dl class="facts">
+        <dt>Bill to</dt><dd><span th:if="${party != null}" th:text="${party.name}">party</span><span th:if="${party == null}" class="err">not set (needed to bill)</span></dd>
+        <dt>LR date</dt><dd th:text="${@fmt.date(trip.lrDate)}">date</dd>
+        <dt>Truck</dt><dd th:text="${vehicle != null ? vehicle.label() : '–'}">truck</dd>
+        <dt>Driver</dt><dd th:text="${driver != null ? driver.name + ' · ' + @fmt.phone(driver.phone) : '–'}">driver</dd>
+        <dt>Consignee</dt><dd th:text="${trip.consignee != null ? trip.consignee : '–'}">consignee</dd>
+        <dt>Goods</dt><dd th:text="${trip.goods != null ? trip.goods : '–'}">goods</dd>
+        <dt>Delivered</dt><dd th:text="${@fmt.date(trip.deliveredOn)}">date</dd>
+        <dt>Freight</dt><dd th:text="${@fmt.rupees(trip.freightAmount)}">₹</dd>
+        <dt>Detention</dt><dd th:text="${@fmt.rupees(trip.detentionAmount)}">₹</dd>
+        <dt>Other charges</dt><dd th:text="${@fmt.rupees(trip.otherCharges)}">₹</dd>
+        <dt>Advance received</dt><dd th:text="${@fmt.rupees(trip.advanceAmount)}">₹</dd>
+        <dt>Notes</dt><dd th:text="${trip.notes != null ? trip.notes : '–'}">notes</dd>
+      </dl>
+      <form th:if="${trip.invoiceId == null and trip.status != 'CANCELLED'}" th:action="@{/trips/{id}/cancel(id=${trip.id})}" method="post"
+            data-confirm="Cancel this trip?" style="margin-top: 1rem">
+        <button type="submit" class="btn small danger">Cancel trip</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Proof of delivery</h2>
+      <p class="muted" th:if="${pods.isEmpty()}">No POD yet. When the driver sends the signed receipt on WhatsApp with this LR number, it is attached here.</p>
+      <div class="grid three">
+        <a th:each="p : ${pods}" th:href="@{/pods/{id}(id=${p.id})}" class="doc-view">
+          <img th:src="@{/files/{id}(id=${p.fileId})}" alt="POD">
+          <div><span class="badge" th:classappend="${p.reviewStatus == 'CONFIRMED'} ? 'ok' : 'warn'" th:text="${@fmt.label(p.reviewStatus)}">s</span></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

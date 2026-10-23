@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Parties', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Parties</h1>
+      <p class="sub">Transporters, brokers and consignors who pay your freight, and how quickly they really pay.</p>
+    </div>
+    <div class="actions"><a class="btn primary" th:href="@{/parties/new}">Add party</a></div>
+  </div>
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Party</th><th>Contact</th><th class="num">Credit</th><th class="num">Open invoices</th><th class="num">Outstanding</th><th class="num">Overdue</th><th class="num">Pays in</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${balances}" th:attr="data-href=@{/invoices(show='all', party=${p.id})}" class="row-link">
+          <td><a th:href="@{/invoices(show='all', party=${p.id})}" th:text="${p.name}">name</a></td>
+          <td><span th:text="${p.phone != null ? @fmt.phone(p.phone) : ''}">p</span><br><small th:text="${p.email}">e</small></td>
+          <td class="num" th:text="${p.creditDays + ' days'}">30</td>
+          <td class="num" th:text="${p.openInvoices}">0</td>
+          <td class="num strong" th:text="${@fmt.rupees0(p.outstanding)}">₹</td>
+          <td class="num" th:classappend="${p.overdue.signum() > 0} ? 'err'" th:text="${p.overdue.signum() > 0 ? @fmt.rupees0(p.overdue) : '–'}">₹</td>
+          <td class="num"><span th:if="${p.avgDaysToPay != null}" th:classappend="${p.slowPayer()} ? 'badge bad'"
+                                th:text="${#numbers.formatDecimal(p.avgDaysToPay, 1, 0) + ' days'}">d</span>
+            <span th:if="${p.avgDaysToPay == null}" class="muted">–</span></td>
+        </tr>
+        <tr th:if="${balances.isEmpty()}"><td colspan="7" class="empty">Add the parties you bill.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

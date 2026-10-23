@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('New invoice', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/trips(status='DELIVERED')}">Trips to bill</a> /</div>
+  <h1>New invoice</h1>
+  <form th:action="@{/invoices}" th:object="${form}" method="post" class="stack">
+    <input type="hidden" th:each="id : *{tripIds}" name="tripIds" th:value="${id}">
+    <div class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>LR</th><th>Date</th><th>Route</th><th class="num">Freight</th><th class="num">Detention + other</th><th class="num">Advance</th></tr></thead>
+          <tbody>
+          <tr th:each="t : ${selected}">
+            <td th:text="${t.lrNumber}">LR</td>
+            <td th:text="${@fmt.date(t.lrDate)}">date</td>
+            <td th:text="${t.route()}">route</td>
+            <td class="num" th:text="${@fmt.rupees(t.freightAmount)}">₹</td>
+            <td class="num" th:text="${@fmt.rupees(t.detentionAmount.add(t.otherCharges))}">₹</td>
+            <td class="num" th:text="${@fmt.rupees(t.advanceAmount)}">₹</td>
+          </tr>
+          <tr class="total"><td colspan="3">Before tax</td><td class="num" colspan="2" th:text="${@fmt.rupees(subtotal)}">₹</td>
+            <td class="num" th:text="${'– ' + @fmt.rupees(advance)}">₹</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="field">
+          <label for="partyId">Bill to</label>
+          <select id="partyId" th:field="*{partyId}" required>
+            <option value="">Choose…</option>
+            <option th:each="p : ${parties}" th:value="${p.id}" th:text="${p.name + ' (' + p.creditDays + ' days credit)'}">party</option>
+          </select>
+          <span class="err" th:if="${#fields.hasErrors('partyId')}">Choose who pays.</span>
+        </div>
+        <div class="field"><label for="invoiceDate">Invoice date</label><input type="date" id="invoiceDate" th:field="*{invoiceDate}" required></div>
+        <div class="field">
+          <label for="gstMode">GST</label>
+          <select id="gstMode" th:field="*{gstMode}">
+            <option th:each="m : ${gstModes}" th:value="${m}" th:text="${m.label()}">mode</option>
+          </select>
+          <span class="hint">Truck hire is usually exempt; GTA bills are usually under reverse charge. Check with your CA.</span>
+        </div>
+        <div class="field"><label for="gstRate">GST rate % (when charged)</label><input type="number" step="0.01" min="0" max="28" id="gstRate" th:field="*{gstRate}"></div>
+        <div class="field wide"><label for="notes">Note on the invoice (optional)</label><input type="text" id="notes" th:field="*{notes}"></div>
+        <label class="check"><input type="checkbox" th:field="*{sendNow}"> Send to the party now by WhatsApp and email, with the PODs attached</label>
+      </div>
+    </div>
+    <div class="actions"><button type="submit" class="btn primary">Create invoice</button></div>
+  </form>
+</div>
+</body>
+</html>

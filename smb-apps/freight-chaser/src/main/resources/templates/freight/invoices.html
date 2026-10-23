@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Invoices', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1 th:text="${party != null ? 'Invoices · ' + party.name : 'Invoices'}">Invoices</h1>
+      <p class="sub">Balance on the invoices shown: <strong th:text="${@fmt.rupees(totalBalance)}">₹0</strong></p>
+    </div>
+    <div class="actions">
+      <a class="btn" th:if="${party != null}" th:href="@{/parties/{id}/edit(id=${party.id})}">Edit party</a>
+      <a class="btn primary" th:href="@{/trips(status='DELIVERED')}">Bill delivered trips</a>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="chips">
+      <a class="chip" th:each="f : ${ {'open','overdue','draft','paid','all'} }" th:href="@{/invoices(show=${f}, party=${party != null ? party.id : null})}"
+         th:classappend="${show == f} ? 'active'" th:text="${f == 'open' ? 'Unpaid' : #strings.capitalize(f)}">f</a>
+    </div>
+    <input type="search" placeholder="Search" data-filter-table="#invoices">
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table id="invoices">
+        <thead>
+        <tr><th>Invoice</th><th>Party</th><th>Date</th><th>Due</th><th class="num">Amount</th><th class="num">Balance</th><th>Chasing</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        <tr th:each="i : ${invoices}" th:attr="data-href=@{/invoices/{id}(id=${i.id})}" class="row-link">
+          <td><a th:href="@{/invoices/{id}(id=${i.id})}" th:text="${i.number}">INV</a></td>
+          <td th:text="${i.partyName}">party</td>
+          <td class="nowrap" th:text="${@fmt.date(i.invoiceDate)}">date</td>
+          <td class="nowrap">
+            <span th:text="${@fmt.date(i.dueDate)}">due</span>
+            <span class="badge bad" th:if="${i.open() and i.dueDate.isBefore(today)}" th:text="${@fmt.relativeDays(i.dueDate)}">late</span>
+          </td>
+          <td class="num" th:text="${@fmt.rupees(i.total)}">₹</td>
+          <td class="num strong" th:text="${i.open() ? @fmt.rupees(i.balance()) : '–'}">₹</td>
+          <td class="nowrap">
+            <span th:if="${i.open() and i.chasePaused}" class="badge">paused</span>
+            <span th:if="${i.open() and !i.chasePaused and i.status != 'DISPUTED' and i.nextFollowUpOn != null}" class="muted"
+                  th:text="${'next ' + @fmt.shortDate(i.nextFollowUpOn)}">next</span>
+            <span th:if="${i.promisedOn != null and i.open()}" class="badge info" th:text="${'promised ' + @fmt.shortDate(i.promisedOn)}">promised</span>
+          </td>
+          <td><span class="badge" th:classappend="${i.status == 'PAID'} ? 'ok' : (${i.status == 'DISPUTED' or i.status == 'WRITTEN_OFF'} ? 'bad' : (${i.status == 'DRAFT'} ? '' : 'info'))"
+                    th:text="${@fmt.label(i.status)}">status</span></td>
+        </tr>
+        <tr th:if="${invoices.isEmpty()}"><td colspan="8" class="empty">No invoices here.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>
