@@ -22,7 +22,7 @@
   <nav class="mainnav" aria-label="Main">
     <a th:each="item : ${nav}" th:href="@{${item.path}}" th:text="${item.label}"
        th:classappend="${item.activeFor(requestPath)} ? 'active'">Item</a>
-    <a th:if="${simulator}" th:href="@{/dev/whatsapp}" class="sim"
+    <a th:if="${simulator}" th:href="@{/dev/whatsapp}" class="nav-sim"
        th:classappend="${#strings.startsWith(requestPath, '/dev/whatsapp')} ? 'active'">WhatsApp simulator</a>
   </nav>
   <nav class="usernav" aria-label="Account">

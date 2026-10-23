@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Suppliers', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Suppliers</h1>
+      <p class="sub">Agreed rates are what every bill is checked against.</p>
+    </div>
+    <div class="actions"><a class="btn" th:href="@{/materials}">Materials and units</a></div>
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Supplier</th><th>WhatsApp</th><th>Email</th><th>GSTIN</th><th class="num">At risk</th><th class="num">Recovered</th><th class="num">Findings</th></tr></thead>
+        <tbody>
+        <tr th:each="s : ${suppliers}" th:attr="data-href=@{/suppliers/{id}(id=${s.id})}" class="row-link">
+          <td><a th:href="@{/suppliers/{id}(id=${s.id})}" th:text="${s.name}">supplier</a></td>
+          <td class="nowrap" th:text="${s.phone != null ? @fmt.phone(s.phone) : '–'}">phone</td>
+          <td th:text="${s.email != null ? s.email : '–'}">email</td>
+          <td class="mono" th:text="${s.gstin != null ? s.gstin : '–'}">gstin</td>
+          <th:block th:each="b : ${bySupplier}" th:if="${b.id == s.id}">
+            <td class="num" th:classappend="${b.atRisk.signum() > 0} ? 'err strong'" th:text="${@fmt.rupees0(b.atRisk)}">₹</td>
+            <td class="num" th:text="${@fmt.rupees0(b.recovered)}">₹</td>
+            <td class="num" th:text="${b.flags}">0</td>
+          </th:block>
+        </tr>
+        <tr th:if="${suppliers.isEmpty()}"><td colspan="7" class="empty">No suppliers yet. They are also added when a slip names one you have not seen.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form th:action="@{/suppliers}" method="post" class="card stack">
+    <h2>Add a supplier</h2>
+    <div class="form-grid">
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" required></div>
+      <div class="field"><label for="phone">WhatsApp number</label><input type="tel" id="phone" name="phone"></div>
+      <div class="field"><label for="email">Email</label><input type="email" id="email" name="email"></div>
+      <div class="field"><label for="gstin">GSTIN</label><input type="text" id="gstin" name="gstin" maxlength="15"></div>
+    </div>
+    <div><button type="submit" class="btn primary">Add supplier</button></div>
+  </form>
+</div>
+</body>
+</html>

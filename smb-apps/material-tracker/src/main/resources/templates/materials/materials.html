@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Materials', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Materials</h1>
+      <p class="sub">The names suppliers write on slips are matched to these. Tolerance allows for normal variation before a gap counts.</p>
+    </div>
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Material</th><th>Compared in</th><th>Also written as</th><th class="num">Tolerance %</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="m : ${materials}">
+          <td><input type="text" name="name" th:value="${m.name}" th:attr="form=${'m-' + m.id}" aria-label="Name" required>
+            <small class="muted" th:text="${@fmt.label(m.category) + (m.bagKg != null ? ' · ' + @fmt.num(m.bagKg) + ' kg bag' : '') + (m.barDiameterMm != null ? ' · ' + m.barDiameterMm + ' mm bar' : '')}">category</small></td>
+          <td th:text="${m.baseUnit().label()}">unit</td>
+          <td><input type="text" name="aliases" th:value="${m.aliases}" th:attr="form=${'m-' + m.id}" aria-label="Aliases"></td>
+          <td class="num"><input type="number" name="tolerancePct" step="0.1" min="0" max="50" th:value="${m.tolerancePct}"
+                                 th:attr="form=${'m-' + m.id}" aria-label="Tolerance" style="max-width: 80px"></td>
+          <td><input type="checkbox" name="active" value="true" th:checked="${m.active}" th:attr="form=${'m-' + m.id}" aria-label="Active"></td>
+          <td class="right"><form th:id="${'m-' + m.id}" th:action="@{/materials/{id}(id=${m.id})}" method="post" class="inline-form">
+            <button type="submit" class="btn small">Save</button></form></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form th:action="@{/materials}" method="post" class="card stack">
+    <h2>Add a material</h2>
+    <div class="form-grid">
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" required placeholder="e.g. Tile adhesive"></div>
+      <div class="field"><label for="category">Category</label>
+        <select id="category" name="category">
+          <option th:each="c : ${ {'CEMENT','STEEL','SAND','AGGREGATE','BRICKS','RMC','OTHER'} }" th:value="${c}" th:text="${@fmt.label(c)}">c</option>
+        </select></div>
+      <div class="field"><label for="unit">Compared in</label>
+        <select id="unit" name="unit"><option th:each="u : ${units}" th:value="${u.name()}" th:text="${u.label()}">u</option></select></div>
+      <div class="field"><label for="tolerancePct">Tolerance %</label><input type="number" step="0.1" min="0" max="50" id="tolerancePct" name="tolerancePct" value="0"></div>
+      <div class="field"><label for="bagKg">Kg per bag</label><input type="number" step="0.01" min="0" id="bagKg" name="bagKg">
+        <span class="hint">Lets bills in tonnes be compared with bags counted.</span></div>
+      <div class="field"><label for="barDiameterMm">Bar diameter mm</label><input type="number" min="6" max="40" id="barDiameterMm" name="barDiameterMm">
+        <span class="hint">Lets bars counted be compared with kg billed.</span></div>
+      <div class="field wide"><label for="aliases">Also written as</label><input type="text" id="aliases" name="aliases" placeholder="comma separated"></div>
+    </div>
+    <div><button type="submit" class="btn primary">Add material</button></div>
+  </form>
+</div>
+</body>
+</html>

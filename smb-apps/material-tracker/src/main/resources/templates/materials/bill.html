@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${'Bill ' + (bill.billNumber != null ? bill.billNumber : '#' + bill.id)}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/bills}">Bills</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${bill.billNumber != null ? 'Bill ' + bill.billNumber : 'Bill #' + bill.id}">Bill</h1>
+      <p class="sub">
+        <span th:text="${supplier != null ? supplier.name : (bill.supplierNameRead != null ? bill.supplierNameRead : 'Supplier not chosen')}">supplier</span>
+        <span th:if="${bill.billDate != null}" th:text="${' · dated ' + @fmt.date(bill.billDate)}"></span>
+        <span th:if="${bill.checkedAt != null}" th:text="${' · checked ' + @fmt.ago(bill.checkedAt)}"></span>
+      </p>
+    </div>
+    <div class="actions">
+      <span class="badge" th:classappend="${bill.status == 'APPROVED' or bill.status == 'PAID'} ? 'ok' : (${bill.status == 'DISPUTED'} ? 'info' : (${bill.status == 'REJECTED'} ? '' : (${openCount > 0} ? 'bad' : 'warn')))"
+            th:text="${bill.status == 'NEEDS_REVIEW' ? 'to check' : @fmt.label(bill.status)}">status</span>
+    </div>
+  </div>
+
+  <div class="callout warn" th:if="${bill.readingStatus == 'MANUAL'}"
+       th:text="${bill.readingNote != null ? 'Not read automatically: ' + bill.readingNote + ' Type the lines from the photo, then check the bill.' : 'Not read automatically. Type the lines from the photo, then check the bill.'}">note</div>
+  <div class="callout info" th:if="${bill.status == 'NEEDS_REVIEW' and bill.readingStatus != 'MANUAL'}">
+    Compare the lines below with the photo, correct anything misread, then press <strong>Save and check</strong>.
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Bill total</div>
+      <div class="value" th:text="${@fmt.rupees(bill.totalAmount)}">₹</div>
+      <div class="note" th:if="${bill.taxAmount != null}" th:text="${'incl. GST ' + @fmt.rupees(bill.taxAmount)}">gst</div></div>
+    <div class="kpi" th:classappend="${atRisk.signum() > 0} ? 'bad'"><div class="label">At risk</div>
+      <div class="value" th:text="${@fmt.rupees(atRisk)}">₹</div>
+      <div class="note" th:text="${openCount + ' open · ' + raisedCount + ' raised with the supplier'}">n</div></div>
+    <div class="kpi ok"><div class="label">Recovered</div>
+      <div class="value" th:text="${@fmt.rupees(recovered)}">₹</div></div>
+    <div class="kpi"><div class="label">Deliveries matched</div>
+      <div class="value" th:text="${linked.size()}">0</div>
+      <div class="note" th:text="${bill.checkedAt != null ? 'counted at the gate' : 'not checked yet'}">n</div></div>
+  </div>
+
+  <div class="card" th:if="${!flags.isEmpty()}">
+    <div class="card-head">
+      <h2>Findings</h2>
+      <div class="actions">
+        <form th:if="${openCount > 0}" th:action="@{/bills/{id}/raise(id=${bill.id})}" method="post" class="inline-form"
+              th:attr="data-confirm=${'Send a discrepancy note to ' + (supplier != null ? supplier.name : 'the supplier') + ' with the bill attached?'}">
+          <button type="submit" class="btn primary">Raise with supplier</button>
+        </form>
+        <form th:if="${atRisk.signum() > 0}" th:action="@{/bills/{id}/recovered(id=${bill.id})}" method="post" class="inline-form">
+          <input type="text" name="note" placeholder="Credit note no." aria-label="Credit note number" style="max-width: 160px">
+          <button type="submit" class="btn ok">Mark recovered</button>
+        </form>
+      </div>
+    </div>
+    <p class="hint" th:if="${openCount > 0 and supplier != null and supplier.phone == null and supplier.email == null}">
+      <a th:href="@{/suppliers/{id}(id=${supplier.id})}">Add the supplier's WhatsApp number or email</a> to send the note from here.</p>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+        <tr th:each="f : ${flags}">
+          <td>
+            <span class="badge" th:classappend="${f.status == 'OPEN'} ? 'bad' : (${f.status == 'RAISED'} ? 'info' : (${f.status == 'RECOVERED'} ? 'ok' : ''))"
+                  th:text="${f.title()}">kind</span>
+            <div th:text="${f.message}">message</div>
+            <small class="muted" th:text="${@fmt.label(f.status) + (f.resolutionNote != null ? ' · ' + f.resolutionNote : '')}">status</small>
+          </td>
+          <td class="num strong" th:text="${f.amount.signum() > 0 ? @fmt.rupees(f.amount) : '–'}">₹</td>
+          <td class="right nowrap">
+            <form th:if="${f.atRisk()}" th:action="@{/leakage/{id}(id=${f.id})}" method="post" class="inline-form">
+              <input type="hidden" name="status" value="DISMISSED">
+              <input type="hidden" name="back" th:value="${'/bills/' + bill.id}">
+              <input type="text" name="note" placeholder="Why it is fine" aria-label="Reason" style="max-width: 150px">
+              <button type="submit" class="btn small">Dismiss</button>
+            </form>
+            <form th:unless="${f.atRisk()}" th:action="@{/leakage/{id}(id=${f.id})}" method="post" class="inline-form">
+              <input type="hidden" name="status" value="OPEN">
+              <input type="hidden" name="back" th:value="${'/bills/' + bill.id}">
+              <button type="submit" class="btn small">Reopen</button>
+            </form>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="callout ok" th:if="${flags.isEmpty() and bill.checkedAt != null}">
+    Checked: the quantities and rates match what was counted at the gate and agreed with the supplier.
+  </div>
+
+  <form th:action="@{/bills/{id}(id=${bill.id})}" th:object="${form}" method="post" class="stack">
+    <div class="split">
+      <div class="doc-view" th:if="${file != null}">
+        <img th:if="${file.image}" th:src="@{/files/{id}(id=${file.id})}" alt="Bill photo">
+        <iframe th:if="${file.pdf}" th:src="@{/files/{id}(id=${file.id})}" title="Bill"></iframe>
+      </div>
+      <div class="card stack">
+        <div class="form-grid">
+          <div class="field"><label for="supplierId">Supplier</label>
+            <select id="supplierId" th:field="*{supplierId}"><option value="">Choose…</option>
+              <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}">s</option></select>
+            <span class="hint" th:if="${bill.supplierNameRead != null}" th:text="${'Bill says: ' + bill.supplierNameRead}"></span></div>
+          <div class="field"><label for="siteId">Site</label>
+            <select id="siteId" th:field="*{siteId}"><option value="">Any site</option>
+              <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}">s</option></select></div>
+          <div class="field"><label for="billNumber">Bill no.</label><input type="text" id="billNumber" th:field="*{billNumber}"></div>
+          <div class="field"><label for="billDate">Bill date</label><input type="date" id="billDate" th:field="*{billDate}"></div>
+          <div class="field wide"><label for="challanRefs">Challans billed</label>
+            <input type="text" id="challanRefs" th:field="*{challanRefs}" placeholder="4401, 4415">
+            <span class="hint">Comma separated. Without challan numbers the bill is matched with unbilled deliveries of the last 45 days.</span></div>
+          <div class="field"><label for="taxableAmount">Taxable value ₹</label><input type="number" step="0.01" min="0" id="taxableAmount" th:field="*{taxableAmount}"></div>
+          <div class="field"><label for="taxAmount">GST ₹</label><input type="number" step="0.01" min="0" id="taxAmount" th:field="*{taxAmount}"></div>
+          <div class="field"><label for="totalAmount">Bill total ₹</label><input type="number" step="0.01" min="0" id="totalAmount" th:field="*{totalAmount}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card flush">
+      <div class="card-head"><h2>Lines</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Material</th><th>As written</th><th class="num">Qty</th><th>Unit</th><th class="num">Rate ₹</th><th class="num">Amount ₹</th><th>Challan</th></tr></thead>
+          <tbody>
+          <tr th:each="line, stat : *{lines}">
+            <td><select th:field="*{lines[__${stat.index}__].materialId}" aria-label="Material" style="min-width: 170px">
+              <option value="">Not matched</option>
+              <option th:each="m : ${materials}" th:value="${m.id}" th:text="${m.name}">m</option></select></td>
+            <td><input type="text" th:field="*{lines[__${stat.index}__].description}" aria-label="Description" style="min-width: 180px"></td>
+            <td><input type="number" step="0.001" min="0" th:field="*{lines[__${stat.index}__].qty}" aria-label="Quantity" style="min-width: 90px"></td>
+            <td><select th:field="*{lines[__${stat.index}__].unit}" aria-label="Unit" style="min-width: 90px">
+              <option value="">–</option>
+              <option th:each="u : ${units}" th:value="${u.name()}" th:text="${u.label()}">u</option></select></td>
+            <td><input type="number" step="0.01" min="0" th:field="*{lines[__${stat.index}__].rate}" aria-label="Rate" style="min-width: 100px"></td>
+            <td><input type="number" step="0.01" min="0" th:field="*{lines[__${stat.index}__].amount}" aria-label="Amount" style="min-width: 120px"></td>
+            <td><input type="text" th:field="*{lines[__${stat.index}__].challanRef}" aria-label="Challan" style="min-width: 80px"></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="padding: 0 1rem">Rates are compared before GST. Empty rows are ignored; save to get two more.</p>
+      <div class="actions" style="padding: 0 1rem 1rem">
+        <button type="submit" class="btn primary" name="check" value="true">Save and check</button>
+        <button type="submit" class="btn">Save</button>
+      </div>
+    </div>
+  </form>
+
+  <div class="card flush" th:if="${!linked.isEmpty()}">
+    <div class="card-head"><h2>Checked against these deliveries</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Challan</th><th>Material</th><th class="num">Slip</th><th class="num">Counted</th><th>Unit</th></tr></thead>
+        <tbody th:each="ld : ${linked}">
+        <tr th:each="l, stat : ${ld.lines}">
+          <td><a th:if="${stat.first}" th:href="@{/deliveries/{id}(id=${ld.delivery.id})}"
+                 th:text="${(ld.delivery.challanNumber != null ? ld.delivery.challanNumber : '#' + ld.delivery.id) + (ld.delivery.challanDate != null ? ' · ' + @fmt.shortDate(ld.delivery.challanDate) : '')}">challan</a></td>
+          <td th:text="${l.materialId != null ? materialNames[l.materialId] : l.description}">material</td>
+          <td class="num" th:text="${@fmt.num(l.slipQty)}">0</td>
+          <td class="num" th:classappend="${l.shortBy().signum() > 0} ? 'err strong'" th:text="${l.receivedQty != null ? @fmt.num(l.receivedQty) : 'as slip'}">0</td>
+          <td th:text="${l.parsedUnit() != null ? l.parsedUnit().label(l.slipQty) : l.unit}">unit</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="card" th:if="${!messages.isEmpty()}">
+      <h2>Messages sent</h2>
+      <table>
+        <tbody>
+        <tr th:each="m : ${messages}">
+          <td class="nowrap" th:text="${@fmt.dateTime(m.createdAt)}">t</td>
+          <td th:text="${m.isWhatsApp() ? 'WhatsApp ' + @fmt.phone(m.recipient) : 'Email ' + m.recipient}">to</td>
+          <td><span class="badge" th:classappend="${m.failed()} ? 'bad' : (${m.status == 'SIMULATED'} ? 'info' : 'ok')" th:text="${m.status}">s</span></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Decision</h2>
+      <div class="actions">
+        <form th:if="${bill.status == 'CHECKED' or bill.status == 'DISPUTED'}" th:action="@{/bills/{id}/status(id=${bill.id})}" method="post" class="inline-form"
+              th:attr="data-confirm=${atRisk.signum() > 0 ? 'Findings are still open. Approve the bill anyway?' : null}">
+          <input type="hidden" name="status" value="APPROVED">
+          <button type="submit" class="btn ok">Approve for payment</button>
+        </form>
+        <form th:if="${bill.status == 'APPROVED'}" th:action="@{/bills/{id}/status(id=${bill.id})}" method="post" class="inline-form">
+          <input type="hidden" name="status" value="PAID">
+          <button type="submit" class="btn">Mark paid</button>
+        </form>
+        <form th:if="${bill.status != 'REJECTED' and bill.status != 'PAID'}" th:action="@{/bills/{id}/status(id=${bill.id})}" method="post" class="inline-form"
+              data-confirm="Reject this bill? Its open findings are dismissed.">
+          <input type="hidden" name="status" value="REJECTED">
+          <button type="submit" class="btn danger">Reject: not a bill or entered twice</button>
+        </form>
+      </div>
+      <p class="hint" th:if="${bill.status == 'NEEDS_REVIEW'}">Check the bill before approving it.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Sites', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Sites and supervisors</h1>
+      <p class="sub">Supervisors registered here can send challan photos from the site gate on WhatsApp.</p>
+    </div>
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Site</th><th>Location</th><th class="num">At risk</th><th class="num">Recovered</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="s : ${sites}">
+          <td><a th:href="@{/sites/{id}(id=${s.id})}" th:text="${s.name}">site</a></td>
+          <td th:text="${s.location != null ? s.location : '–'}">location</td>
+          <th:block th:each="b : ${bySite}" th:if="${b.id == s.id}">
+            <td class="num" th:classappend="${b.atRisk.signum() > 0} ? 'err strong'" th:text="${@fmt.rupees0(b.atRisk)}">₹</td>
+            <td class="num" th:text="${@fmt.rupees0(b.recovered)}">₹</td>
+          </th:block>
+          <td><span class="badge" th:classappend="${s.active} ? 'ok'" th:text="${s.active ? 'active' : 'closed'}">s</span></td>
+          <td class="right">
+            <form th:action="@{/sites/{id}/active(id=${s.id})}" method="post" class="inline-form"
+                  th:attr="data-confirm=${s.active ? 'Close ' + s.name + '? Closed sites are not billed.' : null}">
+              <input type="hidden" name="active" th:value="${!s.active}">
+              <button type="submit" class="btn small" th:text="${s.active ? 'Close site' : 'Reopen'}">toggle</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${sites.isEmpty()}"><td colspan="6" class="empty">Add your first site below.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <form th:action="@{/sites}" method="post" class="card stack">
+      <h2>Add a site</h2>
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" required placeholder="e.g. Sai Heights, Wing B"></div>
+      <div class="field"><label for="location">Location</label><input type="text" id="location" name="location" placeholder="Area, city"></div>
+      <div><button type="submit" class="btn primary">Add site</button></div>
+      <p class="hint">Billing is per active site; close a site when the work is over.</p>
+    </form>
+
+    <form th:action="@{/sites/members}" method="post" class="card stack" th:if="${!sites.isEmpty()}">
+      <h2>Add a supervisor</h2>
+      <div class="form-grid">
+        <div class="field"><label for="memberName">Name</label><input type="text" id="memberName" name="name" required></div>
+        <div class="field"><label for="phone">WhatsApp number</label><input type="tel" id="phone" name="phone" required placeholder="98xxxxxxxx"></div>
+        <div class="field"><label for="siteId">Site</label>
+          <select id="siteId" name="siteId"><option th:each="s : ${sites}" th:if="${s.active}" th:value="${s.id}" th:text="${s.name}">s</option></select></div>
+        <div class="field"><label for="role">Role</label>
+          <select id="role" name="role"><option value="SUPERVISOR">Site supervisor</option><option value="STOREKEEPER">Storekeeper</option></select></div>
+      </div>
+      <div><button type="submit" class="btn primary">Add</button></div>
+      <p class="hint">They photograph each challan at the gate and reply with what was counted. No app to install.</p>
+    </form>
+  </div>
+
+  <div class="card flush">
+    <div class="card-head"><h2>Supervisors</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>WhatsApp</th><th>Role</th><th>Site</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="m : ${members}">
+          <td th:text="${m.name}">name</td>
+          <td class="nowrap" th:text="${@fmt.phone(m.phone)}">phone</td>
+          <td th:text="${m.role == 'STOREKEEPER' ? 'Storekeeper' : 'Supervisor'}">role</td>
+          <td colspan="2">
+            <form th:action="@{/sites/members/{id}(id=${m.id})}" method="post" class="inline-form">
+              <select name="siteId" aria-label="Site" data-submit-on-change>
+                <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}" th:selected="${s.id == m.siteId}">s</option>
+              </select>
+              <label class="check"><input type="checkbox" name="active" value="true" th:checked="${m.active}" data-submit-on-change> Active</label>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${members.isEmpty()}"><td colspan="5" class="empty">No supervisors yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

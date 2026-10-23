@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Dashboard', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Material leakage</h1>
+      <p class="sub">Money caught where deliveries, rates and bills do not agree.</p>
+    </div>
+    <div class="actions">
+      <a class="btn" th:href="@{/deliveries}">Deliveries</a>
+      <a class="btn primary" th:href="@{/bills}">Check a bill</a>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <a class="kpi" th:classappend="${totals.atRisk.signum() > 0} ? 'bad'" th:href="@{/leakage}">
+      <div class="label">At risk</div>
+      <div class="value" th:text="${@fmt.rupees0(totals.atRisk)}">₹0</div>
+      <div class="note">open and raised with suppliers</div>
+    </a>
+    <a class="kpi ok" th:href="@{/leakage(status='RECOVERED')}">
+      <div class="label">Recovered</div>
+      <div class="value" th:text="${@fmt.rupees0(totals.recovered)}">₹0</div>
+      <div class="note">credit notes and corrected bills</div>
+    </a>
+    <div class="kpi">
+      <div class="label">Caught this month</div>
+      <div class="value" th:text="${@fmt.rupees0(totals.caughtThisMonth)}">₹0</div>
+      <div class="note" th:text="${totals.openCount + ' findings still open'}">open</div>
+    </div>
+    <a class="kpi" th:classappend="${awaiting > 0} ? 'warn'" th:href="@{/deliveries(status='AWAITING_COUNT')}">
+      <div class="label">Slips to confirm</div>
+      <div class="value" th:text="${awaiting}">0</div>
+      <div class="note">waiting for a count or typing</div>
+    </a>
+    <a class="kpi" th:classappend="${billsToCheck > 0} ? 'warn'" th:href="@{/bills(status='NEEDS_REVIEW')}">
+      <div class="label">Bills to check</div>
+      <div class="value" th:text="${billsToCheck}">0</div>
+      <div class="note">read, not yet checked</div>
+    </a>
+  </div>
+
+  <div class="grid two">
+    <div class="card flush">
+      <div class="card-head"><h2>By site</h2><a th:href="@{/sites}">Sites</a></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Site</th><th class="num">At risk</th><th class="num">Recovered</th><th class="num">Findings</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${bySite}" th:attr="data-href=@{/sites/{id}(id=${s.id})}" class="row-link">
+            <td><a th:href="@{/sites/{id}(id=${s.id})}" th:text="${s.name}">site</a></td>
+            <td class="num" th:classappend="${s.atRisk.signum() > 0} ? 'err'" th:text="${@fmt.rupees0(s.atRisk)}">₹</td>
+            <td class="num" th:text="${@fmt.rupees0(s.recovered)}">₹</td>
+            <td class="num" th:text="${s.flags}">0</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card flush">
+      <div class="card-head"><h2>By supplier</h2><a th:href="@{/suppliers}">Suppliers</a></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Supplier</th><th class="num">At risk</th><th class="num">Recovered</th><th class="num">Findings</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${bySupplier}" th:attr="data-href=@{/suppliers/{id}(id=${s.id})}" class="row-link">
+            <td><a th:href="@{/suppliers/{id}(id=${s.id})}" th:text="${s.name}">supplier</a></td>
+            <td class="num" th:classappend="${s.atRisk.signum() > 0} ? 'err'" th:text="${@fmt.rupees0(s.atRisk)}">₹</td>
+            <td class="num" th:text="${@fmt.rupees0(s.recovered)}">₹</td>
+            <td class="num" th:text="${s.flags}">0</td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="card flush">
+      <div class="card-head"><h2>Money at risk</h2><a th:href="@{/leakage}">All</a></div>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+          <tr th:each="f : ${recentFlags}">
+            <td><span class="badge" th:classappend="${f.status == 'RAISED'} ? 'info' : 'bad'" th:text="${f.title()}">kind</span>
+              <div th:text="${f.message}">message</div>
+              <small class="muted" th:text="${(f.siteName != null ? f.siteName : '') + (f.supplierName != null ? ' · ' + f.supplierName : '')}">where</small></td>
+            <td class="num strong" th:text="${f.amount.signum() > 0 ? @fmt.rupees(f.amount) : '–'}">₹</td>
+          </tr>
+          <tr th:if="${recentFlags.isEmpty()}"><td class="empty">Nothing open. Every checked bill matches what arrived.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card flush">
+      <div class="card-head"><h2>Latest slips from site</h2><a th:href="@{/deliveries}">All</a></div>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+          <tr th:each="d : ${recentDeliveries}" th:attr="data-href=@{/deliveries/{id}(id=${d.id})}" class="row-link">
+            <td><img class="thumb" th:if="${d.fileId != null}" th:src="@{/files/{id}(id=${d.fileId})}" alt="Challan"></td>
+            <td><strong th:text="${d.challanNumber != null ? 'Challan ' + d.challanNumber : 'Challan not read'}">challan</strong><br>
+              <small th:text="${d.siteName + ' · ' + (d.supplierName != null ? d.supplierName : 'supplier?')}">site</small></td>
+            <td class="right">
+              <span class="badge" th:classappend="${d.status == 'CONFIRMED'} ? (${d.shortLines > 0} ? 'bad' : 'ok') : 'warn'"
+                    th:text="${d.status == 'CONFIRMED' ? (d.shortLines > 0 ? 'short' : 'ok') : @fmt.label(d.status)}">s</span>
+            </td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

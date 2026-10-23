@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${siteRecord.name}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/sites}">Sites</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${siteRecord.name}">Site</h1>
+      <p class="sub" th:text="${siteRecord.location != null ? siteRecord.location : 'Material received against material billed'}">location</p>
+    </div>
+    <div class="actions">
+      <a class="btn" th:href="@{/deliveries(site=${siteRecord.id})}">Deliveries</a>
+      <a class="btn" th:href="@{/leakage(site=${siteRecord.id}, status='ALL')}">Findings</a>
+    </div>
+  </div>
+
+  <div class="card flush">
+    <div class="card-head"><h2>Received against billed</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Material</th><th class="num">Received at gate</th><th class="num">Billed</th><th class="num">Billed beyond received</th><th class="num">Billed amount</th></tr></thead>
+        <tbody>
+        <tr th:each="r : ${ledger}">
+          <td th:text="${r.material.name}">material</td>
+          <td class="num" th:text="${@fmt.num(r.received) + ' ' + r.material.baseUnit().label(r.received)}">0</td>
+          <td class="num" th:text="${@fmt.num(r.billed) + ' ' + r.material.baseUnit().label(r.billed)}">0</td>
+          <td class="num" th:classappend="${r.excess().signum() > 0} ? 'err strong'"
+              th:text="${r.excess().signum() > 0 ? @fmt.num(r.excess()) + ' ' + r.material.baseUnit().label(r.excess()) : '–'}">0</td>
+          <td class="num" th:text="${@fmt.rupees(r.billedAmount)}">₹</td>
+        </tr>
+        <tr th:if="${ledger.isEmpty()}"><td colspan="5" class="empty">No confirmed deliveries or checked bills for this site yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="padding: 0 1rem 1rem">Received counts confirmed challans; billed counts checked bills. A bill covering challans from several sites is counted where it was filed.</p>
+  </div>
+
+  <div class="grid two">
+    <div class="card flush">
+      <div class="card-head"><h2>Money at risk here</h2><a th:href="@{/leakage(site=${siteRecord.id})}">All</a></div>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+          <tr th:each="f : ${flags}">
+            <td><span class="badge" th:classappend="${f.status == 'RAISED'} ? 'info' : 'bad'" th:text="${f.title()}">kind</span>
+              <div th:text="${f.message}">message</div>
+              <small class="muted" th:text="${f.supplierName}">supplier</small></td>
+            <td class="num strong" th:text="${f.amount.signum() > 0 ? @fmt.rupees(f.amount) : '–'}">₹</td>
+          </tr>
+          <tr th:if="${flags.isEmpty()}"><td class="empty">Nothing open on this site.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card flush">
+      <div class="card-head"><h2>Latest deliveries</h2><a th:href="@{/deliveries(site=${siteRecord.id})}">All</a></div>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+          <tr th:each="d : ${deliveries}" th:attr="data-href=@{/deliveries/{id}(id=${d.id})}" class="row-link">
+            <td><strong th:text="${d.challanNumber != null ? 'Challan ' + d.challanNumber : 'Challan not read'}">challan</strong><br>
+              <small th:text="${(d.supplierName != null ? d.supplierName : 'supplier?') + ' · ' + @fmt.ago(d.receivedAt)}">supplier</small></td>
+            <td class="right">
+              <span class="badge" th:classappend="${d.status == 'CONFIRMED'} ? (${d.shortLines > 0} ? 'bad' : 'ok') : 'warn'"
+                    th:text="${d.status == 'CONFIRMED' ? (d.shortLines > 0 ? 'short' : 'ok') : @fmt.label(d.status)}">s</span>
+            </td>
+          </tr>
+          <tr th:if="${deliveries.isEmpty()}"><td class="empty">No deliveries yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

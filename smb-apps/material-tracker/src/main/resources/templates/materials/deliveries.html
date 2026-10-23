@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Deliveries', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Deliveries</h1>
+      <p class="sub">Every challan photographed at the gate, with what the supervisor counted.</p>
+    </div>
+  </div>
+
+  <div class="callout warn" th:unless="${aiEnabled}">
+    Automatic reading is off (no <span class="mono">ANTHROPIC_API_KEY</span>): slips arrive as photos and the office types the quantities.
+  </div>
+
+  <div class="card">
+    <form th:action="@{/deliveries/upload}" method="post" enctype="multipart/form-data" class="filters">
+      <strong>Add a challan</strong>
+      <select name="siteId" required style="max-width: 240px" aria-label="Site">
+        <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}">site</option>
+      </select>
+      <input type="file" name="file" accept="image/*,application/pdf" required>
+      <button type="submit" class="btn small primary">Upload</button>
+    </form>
+  </div>
+
+  <form th:action="@{/deliveries}" method="get" class="filters">
+    <select name="site" data-submit-on-change aria-label="Site">
+      <option value="">All sites</option>
+      <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}" th:selected="${s.id == site}">site</option>
+    </select>
+    <select name="status" data-submit-on-change aria-label="Status">
+      <option value="">Any status</option>
+      <option value="AWAITING_COUNT" th:selected="${status == 'AWAITING_COUNT'}">Waiting for count</option>
+      <option value="NEEDS_REVIEW" th:selected="${status == 'NEEDS_REVIEW'}">To type in</option>
+      <option value="CONFIRMED" th:selected="${status == 'CONFIRMED'}">Confirmed</option>
+    </select>
+    <input type="search" placeholder="Search" data-filter-table="#deliveries">
+  </form>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table id="deliveries">
+        <thead><tr><th></th><th>Challan</th><th>Site</th><th>Supplier</th><th>From</th><th class="num">Lines</th><th>Count</th><th>Billed</th></tr></thead>
+        <tbody>
+        <tr th:each="d : ${deliveries}" th:attr="data-href=@{/deliveries/{id}(id=${d.id})}" class="row-link">
+          <td><img class="thumb" th:if="${d.fileId != null}" th:src="@{/files/{id}(id=${d.fileId})}" alt="Challan"></td>
+          <td><a th:href="@{/deliveries/{id}(id=${d.id})}" th:text="${d.challanNumber != null ? d.challanNumber : 'not read'}">no</a><br>
+            <small th:text="${@fmt.date(d.challanDate)}">date</small></td>
+          <td th:text="${d.siteName}">site</td>
+          <td th:text="${d.supplierName != null ? d.supplierName : '–'}">supplier</td>
+          <td><span th:text="${d.memberName != null ? d.memberName : 'Upload'}">who</span><br><small th:text="${@fmt.ago(d.receivedAt)}">when</small></td>
+          <td class="num" th:text="${d.lineCount}">0</td>
+          <td><span class="badge" th:classappend="${d.status == 'CONFIRMED'} ? (${d.shortLines > 0} ? 'bad' : 'ok') : 'warn'"
+                    th:text="${d.status == 'CONFIRMED' ? (d.shortLines > 0 ? d.shortLines + ' short' : 'all ok') : (d.status == 'AWAITING_COUNT' ? 'waiting for count' : @fmt.label(d.status))}">s</span></td>
+          <td><a th:if="${d.billId != null}" th:href="@{/bills/{id}(id=${d.billId})}">bill</a><span th:if="${d.billId == null}" class="muted">–</span></td>
+        </tr>
+        <tr th:if="${deliveries.isEmpty()}"><td colspan="8" class="empty">No deliveries yet. Supervisors' challan photos appear here.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

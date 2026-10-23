@@ -18,6 +18,7 @@
 	<modules>
 		<module>platform</module>
 		<module>freight-chaser</module>
+		<module>material-tracker</module>
 	</modules>
 
 	<properties>

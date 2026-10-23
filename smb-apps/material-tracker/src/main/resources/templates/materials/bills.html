@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Bills', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Supplier bills</h1>
+      <p class="sub">Each bill is checked against the challans counted at site and the rates you agreed.</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <form th:action="@{/bills/upload}" method="post" enctype="multipart/form-data" class="filters">
+      <strong>Add a bill</strong>
+      <select name="siteId" style="max-width: 240px" aria-label="Site">
+        <option value="">Site (optional)</option>
+        <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}">site</option>
+      </select>
+      <input type="file" name="file" accept="image/*,application/pdf" required>
+      <button type="submit" class="btn small primary">Upload</button>
+    </form>
+  </div>
+
+  <div class="filters">
+    <div class="chips">
+      <a class="chip" th:href="@{/bills}" th:classappend="${status == null} ? 'active'">All</a>
+      <a class="chip" th:href="@{/bills(status='NEEDS_REVIEW')}" th:classappend="${status == 'NEEDS_REVIEW'} ? 'active'">To check</a>
+      <a class="chip" th:href="@{/bills(status='CHECKED')}" th:classappend="${status == 'CHECKED'} ? 'active'">Checked</a>
+      <a class="chip" th:href="@{/bills(status='DISPUTED')}" th:classappend="${status == 'DISPUTED'} ? 'active'">Disputed</a>
+      <a class="chip" th:href="@{/bills(status='APPROVED')}" th:classappend="${status == 'APPROVED'} ? 'active'">Approved</a>
+    </div>
+    <input type="search" placeholder="Search" data-filter-table="#bills">
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table id="bills">
+        <thead><tr><th></th><th>Bill</th><th>Supplier</th><th>Site</th><th class="num">Total</th><th class="num">At risk</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr th:each="b : ${bills}" th:attr="data-href=@{/bills/{id}(id=${b.id})}" class="row-link">
+          <td><img class="thumb" th:if="${b.fileId != null}" th:src="@{/files/{id}(id=${b.fileId})}" alt="Bill"></td>
+          <td><a th:href="@{/bills/{id}(id=${b.id})}" th:text="${b.billNumber != null ? b.billNumber : 'not read'}">no</a><br>
+            <small th:text="${@fmt.date(b.billDate)}">date</small></td>
+          <td th:text="${b.supplierName != null ? b.supplierName : '–'}">supplier</td>
+          <td th:text="${b.siteName != null ? b.siteName : '–'}">site</td>
+          <td class="num" th:text="${@fmt.rupees(b.totalAmount)}">₹</td>
+          <td class="num" th:classappend="${b.atRisk.signum() > 0} ? 'err strong'" th:text="${b.atRisk.signum() > 0 ? @fmt.rupees(b.atRisk) : '–'}">₹</td>
+          <td><span class="badge" th:classappend="${b.status == 'APPROVED' or b.status == 'PAID'} ? 'ok' : (${b.status == 'DISPUTED'} ? 'info' : (${b.openFlags > 0} ? 'bad' : 'warn'))"
+                    th:text="${b.status == 'NEEDS_REVIEW' ? 'to check' : @fmt.label(b.status)}">s</span></td>
+        </tr>
+        <tr th:if="${bills.isEmpty()}"><td colspan="7" class="empty">No bills yet. Upload one, or ask supervisors to forward bills on WhatsApp.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

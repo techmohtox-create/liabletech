@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${'Challan ' + (delivery.challanNumber != null ? delivery.challanNumber : '#' + delivery.id)}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/deliveries}">Deliveries</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${delivery.challanNumber != null ? 'Challan ' + delivery.challanNumber : 'Delivery #' + delivery.id}">Challan</h1>
+      <p class="sub"><span th:text="${member != null ? 'From ' + member.name + ' on WhatsApp' : 'Uploaded'}">from</span>,
+        <span th:text="${@fmt.dateTime(delivery.receivedAt)}">when</span></p>
+    </div>
+    <span class="badge" th:classappend="${delivery.status == 'CONFIRMED'} ? 'ok' : 'warn'"
+          th:text="${delivery.status == 'AWAITING_COUNT' ? 'waiting for supervisor' : @fmt.label(delivery.status)}">s</span>
+  </div>
+
+  <div class="callout warn" th:if="${delivery.status == 'AWAITING_COUNT'}">
+    The supervisor was asked on WhatsApp to confirm what arrived. You can also enter the counted quantities here.
+  </div>
+  <div class="callout warn" th:if="${delivery.readingStatus == 'MANUAL'}"
+       th:text="${delivery.readingNote != null ? 'Not read automatically: ' + delivery.readingNote : 'Not read automatically.'}">note</div>
+  <div class="callout bad" th:each="f : ${flags}" th:if="${f.kind == 'SHORT_DELIVERY'}">
+    <strong th:text="${f.title()}">Short</strong>: <span th:text="${f.message}">m</span>
+    <span th:if="${f.amount.signum() > 0}" th:text="${' · ' + @fmt.rupees(f.amount)}"></span>
+    <span class="badge" th:text="${@fmt.label(f.status)}">open</span>
+    <span class="muted" th:if="${f.resolutionNote != null}" th:text="${f.resolutionNote}"></span>
+  </div>
+
+  <form th:action="@{/deliveries/{id}(id=${delivery.id})}" th:object="${form}" method="post" class="stack">
+    <div class="split">
+      <div class="doc-view" th:if="${file != null}">
+        <img th:if="${file.image}" th:src="@{/files/{id}(id=${file.id})}" alt="Challan photo">
+        <iframe th:if="${file.pdf}" th:src="@{/files/{id}(id=${file.id})}" title="Challan"></iframe>
+      </div>
+      <div class="card stack">
+        <div class="form-grid">
+          <div class="field"><label for="siteId">Site</label>
+            <select id="siteId" th:field="*{siteId}"><option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}">s</option></select></div>
+          <div class="field"><label for="supplierId">Supplier</label>
+            <select id="supplierId" th:field="*{supplierId}"><option value="">Choose…</option>
+              <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}">s</option></select>
+            <span class="hint" th:if="${delivery.supplierNameRead != null}" th:text="${'Slip says: ' + delivery.supplierNameRead}"></span></div>
+          <div class="field"><label for="challanNumber">Challan no.</label><input type="text" id="challanNumber" th:field="*{challanNumber}"></div>
+          <div class="field"><label for="challanDate">Date</label><input type="date" id="challanDate" th:field="*{challanDate}"></div>
+          <div class="field"><label for="vehicleNumber">Vehicle</label><input type="text" id="vehicleNumber" th:field="*{vehicleNumber}"></div>
+          <div class="field wide"><label for="notes">Notes</label><input type="text" id="notes" th:field="*{notes}"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card flush">
+      <div class="card-head"><h2>Lines</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Material</th><th>As written</th><th class="num">Slip qty</th><th>Unit</th><th class="num">Counted</th></tr></thead>
+          <tbody>
+          <tr th:each="line, stat : *{lines}">
+            <td th:text="${stat.count}">1</td>
+            <td><select th:field="*{lines[__${stat.index}__].materialId}" aria-label="Material" style="min-width: 170px">
+              <option value="">Not matched</option>
+              <option th:each="m : ${materials}" th:value="${m.id}" th:text="${m.name}">m</option></select></td>
+            <td><input type="text" th:field="*{lines[__${stat.index}__].description}" aria-label="Description" style="min-width: 200px"></td>
+            <td><input type="number" step="0.001" min="0" th:field="*{lines[__${stat.index}__].slipQty}" aria-label="Slip quantity" style="min-width: 100px"></td>
+            <td><select th:field="*{lines[__${stat.index}__].unit}" aria-label="Unit" style="min-width: 90px">
+              <option value="">–</option>
+              <option th:each="u : ${units}" th:value="${u.name()}" th:text="${u.label()}">u</option></select></td>
+            <td><input type="number" step="0.001" min="0" th:field="*{lines[__${stat.index}__].receivedQty}" aria-label="Counted" style="min-width: 100px"></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint" style="padding: 0 1rem">Leave "Counted" empty when the line arrived exactly as on the slip.</p>
+      <div class="actions" style="padding: 0 1rem 1rem"><button type="submit" class="btn primary">Save and confirm</button></div>
+    </div>
+  </form>
+  <form th:action="@{/deliveries/{id}/reject(id=${delivery.id})}" method="post" data-confirm="Mark this as not a delivery?" th:if="${delivery.status != 'REJECTED'}">
+    <button type="submit" class="btn small danger">Not a delivery / wrong photo</button>
+  </form>
+</div>
+</body>
+</html>

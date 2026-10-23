@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Leakage', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Leakage findings</h1>
+      <p class="sub">Short deliveries, over-billing, rates above agreement and bills charged twice: what happened to each.</p>
+    </div>
+  </div>
+
+  <form th:action="@{/leakage}" method="get" class="filters">
+    <div class="chips">
+      <a class="chip" th:each="s : ${ {'AT_RISK','OPEN','RAISED','RECOVERED','DISMISSED','CLOSED','ALL'} }"
+         th:href="@{/leakage(status=${s}, site=${site}, supplier=${supplier})}" th:classappend="${status == s} ? 'active'"
+         th:text="${s == 'AT_RISK' ? 'At risk' : (s == 'ALL' ? 'All' : #strings.capitalize(@fmt.label(s)))}">s</a>
+    </div>
+    <input type="hidden" name="status" th:value="${status}">
+    <select name="site" data-submit-on-change aria-label="Site">
+      <option value="">All sites</option>
+      <option th:each="s : ${sites}" th:value="${s.id}" th:text="${s.name}" th:selected="${s.id == site}">site</option>
+    </select>
+    <select name="supplier" data-submit-on-change aria-label="Supplier">
+      <option value="">All suppliers</option>
+      <option th:each="s : ${suppliers}" th:value="${s.id}" th:text="${s.name}" th:selected="${s.id == supplier}">supplier</option>
+    </select>
+    <input type="search" placeholder="Search" data-filter-table="#flags">
+  </form>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table id="flags">
+        <thead><tr><th>Finding</th><th>Site</th><th>Supplier</th><th>Source</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="f : ${flags}">
+          <td><strong th:text="${f.title()}">kind</strong>
+            <div th:text="${f.message}">message</div>
+            <small class="muted" th:text="${@fmt.date(f.createdAt) + (f.resolutionNote != null ? ' · ' + f.resolutionNote : '')}">when</small></td>
+          <td th:text="${f.siteName != null ? f.siteName : '–'}">site</td>
+          <td th:text="${f.supplierName != null ? f.supplierName : '–'}">supplier</td>
+          <td class="nowrap">
+            <a th:if="${f.billId != null}" th:href="@{/bills/{id}(id=${f.billId})}" th:text="${'Bill ' + (f.billNumber != null ? f.billNumber : '#' + f.billId)}">bill</a>
+            <a th:if="${f.billId == null and f.deliveryId != null}" th:href="@{/deliveries/{id}(id=${f.deliveryId})}">Gate count</a>
+          </td>
+          <td class="num strong" th:text="${f.amount.signum() > 0 ? @fmt.rupees(f.amount) : '–'}">₹</td>
+          <td><span class="badge" th:classappend="${f.status == 'OPEN'} ? 'bad' : (${f.status == 'RAISED'} ? 'info' : (${f.status == 'RECOVERED'} ? 'ok' : ''))"
+                    th:text="${@fmt.label(f.status)}">s</span></td>
+          <td class="right nowrap">
+            <form th:if="${f.status == 'OPEN' or f.status == 'RAISED'}" th:action="@{/leakage/{id}(id=${f.id})}" method="post" class="inline-form">
+              <input type="hidden" name="status" value="RECOVERED">
+              <input type="hidden" name="back" th:value="${'/leakage?status=' + status}">
+              <button type="submit" class="btn small ok" th:if="${f.amount.signum() > 0}">Recovered</button>
+            </form>
+            <form th:if="${f.status == 'OPEN' or f.status == 'RAISED'}" th:action="@{/leakage/{id}(id=${f.id})}" method="post" class="inline-form">
+              <input type="hidden" name="status" value="DISMISSED">
+              <input type="hidden" name="back" th:value="${'/leakage?status=' + status}">
+              <button type="submit" class="btn small">Dismiss</button>
+            </form>
+            <form th:unless="${f.status == 'OPEN' or f.status == 'RAISED'}" th:action="@{/leakage/{id}(id=${f.id})}" method="post" class="inline-form">
+              <input type="hidden" name="status" value="OPEN">
+              <input type="hidden" name="back" th:value="${'/leakage?status=' + status}">
+              <button type="submit" class="btn small">Reopen</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${flags.isEmpty()}"><td colspan="7" class="empty">Nothing here. Findings appear when a gate count comes up short or a bill does not match.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>
