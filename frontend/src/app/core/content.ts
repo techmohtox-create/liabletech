@@ -302,12 +302,17 @@ export type ProductStatus = 'live' | 'soon';
 export interface Product {
   slug: string;
   name: string;
+  icon: IconName;
   category: string;
   status: ProductStatus;
   tagline: string;
   summary: string;
   audience: string;
   scope: string[];
+  /** Planned price, shown on the coming-soon page. */
+  price?: string;
+  /** A sample of what the product produces, clearly labelled as illustrative. */
+  preview?: { title: string; verdict: string; rows: { label: string; value: string; source: string; ok: boolean }[] };
   seoTitle: string;
   seoDescription: string;
 }
@@ -316,6 +321,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: 'bazaarflow',
     name: 'BazaarFlow',
+    icon: 'cart',
     category: 'E-commerce and operations platform',
     status: 'live',
     tagline: 'Sell online and run fulfilment from one platform, with GST built in.',
@@ -339,6 +345,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: 'medflow-ai',
     name: 'MedFlow AI',
+    icon: 'pulse',
     category: 'Hospital management',
     status: 'soon',
     tagline: 'Hospital management with AI assistance for the busiest parts of the day.',
@@ -359,6 +366,7 @@ export const PRODUCTS: Product[] = [
   {
     slug: 'erp',
     name: 'LiableTech ERP',
+    icon: 'grid',
     category: 'ERP for growing businesses',
     status: 'soon',
     tagline: 'Purchasing, inventory, sales and accounts in one system, built for GST.',
@@ -369,6 +377,38 @@ export const PRODUCTS: Product[] = [
     seoTitle: 'LiableTech ERP for growing businesses (coming soon) | LiableTech',
     seoDescription:
       'An ERP for purchasing, inventory, sales and GST-ready accounts in one system. Join the waitlist for early access.',
+  },
+  {
+    slug: 'tendercheck',
+    name: 'TenderCheck',
+    icon: 'tender',
+    category: 'Tender eligibility checker',
+    status: 'soon',
+    tagline: 'Know if you qualify for a tender before you spend days reading it.',
+    summary:
+      'Upload a 50–200 page tender document. AI pulls out the eligibility criteria, deposit amounts, deadlines and required papers, checks them against your saved company profile and tells you where you stand, with the clause it relied on.',
+    audience: 'Small contractors, suppliers and MSMEs that bid for government and PSU tenders.',
+    scope: [
+      'Company profile saved once: turnover, experience, registrations and certificates',
+      'Eligibility, EMD and fee amounts, deadlines and required documents pulled from the tender PDF',
+      'A clear verdict against your profile, with the page and clause behind every point',
+      'A checklist of missing papers before the bid closes',
+      'Deadline reminders for submission, pre-bid meetings and clarifications',
+    ],
+    price: 'Planned from ₹499 a month',
+    preview: {
+      title: 'Example check on a sample tender',
+      verdict: 'You qualify. Submit by 12 Nov. One paper missing.',
+      rows: [
+        { label: 'Average annual turnover', value: '₹1.5 crore asked, your profile shows ₹2.1 crore', source: 'Clause 3.1, page 12', ok: true },
+        { label: 'Similar work in the last 7 years', value: 'One work of 80% value found in your profile', source: 'Clause 3.2, page 12', ok: true },
+        { label: 'EMD', value: '₹45,000 by bank guarantee or online payment', source: 'Clause 5, page 18', ok: true },
+        { label: 'Solvency certificate', value: 'Required, missing from your profile', source: 'Annexure B, page 41', ok: false },
+      ],
+    },
+    seoTitle: 'TenderCheck: tender eligibility checker for MSMEs (coming soon) | LiableTech',
+    seoDescription:
+      'TenderCheck reads tender documents, extracts eligibility, EMD, deadlines and required papers, and checks them against your company profile. Join the waitlist.',
   },
 ];
 
@@ -475,6 +515,12 @@ export const PROBLEMS: { id: string; label: string; serviceSlug?: string; produc
     answer: 'We connect your ERP, CRM, payments and couriers so data is entered once and stays consistent everywhere.',
   },
   {
+    id: 'tenders',
+    label: 'Tender documents take days to read',
+    productSlug: 'tendercheck',
+    answer: 'TenderCheck pulls the eligibility, deposit, deadlines and required papers out of a tender and checks them against your profile, so a missed clause does not cost you the bid.',
+  },
+  {
     id: 'cloud',
     label: 'Cloud bills up, reliability down',
     serviceSlug: 'cloud-engineering',
@@ -544,7 +590,7 @@ export const ENGAGEMENTS = [
   },
   {
     title: 'Product plus customisation',
-    best: 'Commerce today; hospital management and ERP soon',
+    best: 'Commerce today; hospital management, ERP and tender checks soon',
     description: 'Start from a LiableTech product and tailor it to your process. Faster and less risky than building from zero.',
   },
   {
@@ -586,6 +632,7 @@ export const NEEDS = [
   { id: 'bazaarflow', label: 'BazaarFlow e-commerce' },
   { id: 'medflow-ai', label: 'MedFlow AI (waitlist)' },
   { id: 'erp', label: 'LiableTech ERP (waitlist)' },
+  { id: 'tendercheck', label: 'TenderCheck (waitlist)' },
   { id: 'other', label: 'Something else' },
 ];
 

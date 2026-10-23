@@ -135,7 +135,7 @@
       @for (p of products; track p.slug) {
         <a class="card product" [class.live]="p.status === 'live'" [routerLink]="['/products', p.slug]" data-reveal>
           <div class="product-top">
-            <span class="product-icon"><app-icon [name]="productIcon(p.slug)" [size]="26" /><i></i></span>
+            <span class="product-icon"><app-icon [name]="p.icon" [size]="26" /><i></i></span>
             <span class="badge" [class.badge-live]="p.status === 'live'" [class.badge-soon]="p.status === 'soon'">
               {{ p.status === 'live' ? 'Live demo' : 'Coming soon' }}
             </span>

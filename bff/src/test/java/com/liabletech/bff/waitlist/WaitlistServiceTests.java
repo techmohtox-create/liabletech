@@ -38,4 +38,15 @@ class WaitlistServiceTests {
 		assertThat(rows).isZero();
 	}
 
+	@Test
+	void acceptsTenderCheckSignUps() {
+		String reference = waitlistService.join(new WaitlistRequest("Ravi", "bids@contractor.example", "Ravi Constructions", "tendercheck", null));
+
+		String product = jdbcClient.sql("SELECT product FROM waitlist_signup WHERE reference = :reference")
+			.param("reference", reference)
+			.query(String.class)
+			.single();
+		assertThat(product).isEqualTo("tendercheck");
+	}
+
 }

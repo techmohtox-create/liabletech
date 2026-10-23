@@ -44,7 +44,7 @@ import { Icon } from '../shared/icon';
               <div class="sub sub-products">
                 @for (p of products; track p.slug) {
                   <a class="sub-item" [routerLink]="['/products', p.slug]" (click)="closeMenu()">
-                    <span class="icon-tile sm prod"><app-icon [name]="p.slug === 'bazaarflow' ? 'cart' : p.slug === 'erp' ? 'grid' : 'pulse'" [size]="20" /></span>
+                    <span class="icon-tile sm prod"><app-icon [name]="p.icon" [size]="20" /></span>
                     <span>
                       <strong>{{ p.name }}
                         <em class="badge" [class.badge-live]="p.status === 'live'" [class.badge-soon]="p.status === 'soon'">

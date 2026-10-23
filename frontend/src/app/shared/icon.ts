@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
  */
 export type IconName =
   | 'ai' | 'software' | 'cloud' | 'api' | 'sre' | 'support'
-  | 'arrow' | 'check' | 'plus' | 'menu' | 'close' | 'chevron' | 'external' | 'mail' | 'cart' | 'pulse' | 'grid';
+  | 'arrow' | 'check' | 'plus' | 'menu' | 'close' | 'chevron' | 'external' | 'mail' | 'cart' | 'pulse' | 'grid' | 'tender';
 
 @Component({
   selector: 'app-icon',
@@ -49,6 +49,10 @@ export type IconName =
         @case ('grid') {
           <rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/>
           <rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5" class="k"/>
+        }
+        @case ('tender') {
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M8.5 14l2 2 4-4"/>
+          <rect x="8" y="6" width="3" height="3" rx=".8" class="k"/>
         }
         @case ('arrow') { <path d="M5 12h14M13 6l6 6-6 6"/> }
         @case ('check') { <path d="M5 12.5l4.5 4.5L19 7.5"/> }
