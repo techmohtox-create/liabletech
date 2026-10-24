@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${customer.displayName()}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/customers}">Customers</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${customer.displayName()}">Customer</h1>
+      <p class="sub" th:text="${@fmt.phone(customer.phone) + (customer.area != null ? ' · ' + customer.area : '') + (customer.address != null ? ' · ' + customer.address : '')}">phone</p>
+    </div>
+    <form th:action="@{/customers/{id}/opt-out(id=${customer.id})}" method="post" class="inline-form">
+      <input type="hidden" name="optedOut" th:value="${!customer.optedOut}">
+      <span th:if="${customer.optedOut}" class="badge warn">replied STOP: no reminders</span>
+      <button type="submit" class="btn small" th:text="${customer.optedOut ? 'Turn reminders back on' : 'Stop reminders'}">toggle</button>
+    </form>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card" th:each="a : ${appliances}" th:with="k=${current.get(a.id)}">
+        <div class="card-head">
+          <h2 th:text="${a.describe()}">Appliance</h2>
+          <span th:if="${k != null}" class="badge" th:classappend="${k.expired(today)} ? 'bad' : (${k.daysLeft(today) <= 30} ? 'warn' : 'ok')" th:text="${k.dueText(today)}">due</span>
+          <span th:if="${k == null}" class="badge">no AMC</span>
+        </div>
+        <dl class="facts">
+          <dt th:if="${a.model != null}">Model</dt><dd th:if="${a.model != null}" class="mono" th:text="${a.model}">m</dd>
+          <dt th:if="${a.serialNumber != null}">Serial no.</dt><dd th:if="${a.serialNumber != null}" class="mono" th:text="${a.serialNumber}">s</dd>
+          <dt th:if="${a.refrigerant != null}">Refrigerant</dt><dd th:if="${a.refrigerant != null}" th:text="${a.refrigerant}">r</dd>
+          <dt th:if="${a.manufactured != null}">Made</dt><dd th:if="${a.manufactured != null}" th:text="${a.manufactured}">d</dd>
+          <dt th:if="${k != null}">AMC</dt>
+          <dd th:if="${k != null}"><a th:href="@{/contracts/{id}(id=${k.id})}" th:text="${k.planName + ', ' + @fmt.rupees0(k.price) + ', until ' + @fmt.date(k.endsOn)}">amc</a>
+            <span class="muted" th:text="${k.paid() ? ' · paid' : ' · payment not recorded'}"></span></dd>
+          <dt th:if="${a.labelFileId != null}">Label</dt><dd th:if="${a.labelFileId != null}"><a th:href="@{/files/{id}(id=${a.labelFileId})}" target="_blank">photo</a></dd>
+        </dl>
+        <details th:if="${k == null}">
+          <summary>Sell an AMC for this appliance</summary>
+          <form th:action="@{/contracts}" method="post" class="stack" style="margin-top: 0.6rem">
+            <input type="hidden" name="customerId" th:value="${customer.id}">
+            <input type="hidden" name="applianceId" th:value="${a.id}">
+            <div class="form-grid">
+              <div class="field"><label th:for="${'plan-' + a.id}">Plan</label>
+                <select th:id="${'plan-' + a.id}" name="planId" required>
+                  <option th:each="p : ${plans}" th:if="${p.appliesTo(a.applianceKind().family())}" th:value="${p.id}" th:text="${p.name + ' · ' + @fmt.rupees0(p.price)}">p</option>
+                </select></div>
+              <div class="field"><label th:for="${'price-' + a.id}">Price</label><input type="number" min="1" step="1" th:id="${'price-' + a.id}" name="price" placeholder="plan price"></div>
+              <div class="field"><label th:for="${'start-' + a.id}">Starts</label><input type="date" th:id="${'start-' + a.id}" name="startsOn" th:value="${today}"></div>
+              <div class="field"><label th:for="${'mode-' + a.id}">Paid by</label>
+                <select th:id="${'mode-' + a.id}" name="paymentMode"><option value="UPI">UPI</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK">Bank transfer</option></select></div>
+            </div>
+            <label class="check"><input type="checkbox" name="paid" value="true"> Paid</label>
+            <div><button type="submit" class="btn primary">Add AMC</button></div>
+          </form>
+        </details>
+      </div>
+      <div class="card" th:if="${appliances.isEmpty()}">
+        <p class="empty">No appliances yet. Ask the technician to photograph the label with this customer's number in the caption, or add one below.</p>
+      </div>
+
+      <div class="card flush" th:if="${!requests.isEmpty()}">
+        <div class="card-head"><h2>Requests and visits</h2><a th:href="@{/requests}">Requests</a></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="r : ${requests}">
+              <td th:text="${r.kind == 'RENEWAL' ? 'Renewal' : (r.kind == 'REPAIR' ? 'Enquiry' : 'Service visit')}">kind</td>
+              <td><span th:text="${r.appliance() != null ? r.appliance() : ''}">appliance</span>
+                <br th:if="${r.note != null}"><small th:if="${r.note != null}" th:text="${r.note}">note</small></td>
+              <td class="nowrap" th:text="${r.scheduledOn != null ? @fmt.shortDate(r.scheduledOn) : (r.preferredOn != null ? 'asked ' + @fmt.shortDate(r.preferredOn) : @fmt.ago(r.createdAt))}">when</td>
+              <td><span class="badge" th:classappend="${r.status == 'DONE'} ? 'ok' : (${r.status == 'NEW'} ? 'warn' : (${r.status == 'SCHEDULED'} ? 'info' : ''))" th:text="${@fmt.label(r.status)}">s</span></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" th:if="${!messages.isEmpty()}">
+        <h2>WhatsApp messages sent</h2>
+        <div class="thread" style="max-height: 460px">
+          <div class="bubble out" th:each="m : ${messages}"><span th:text="${m.body}">text</span><span class="meta" th:text="${@fmt.dateTime(m.createdAt) + ' · ' + @fmt.label(m.status)}">t</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <form th:action="@{/customers/{id}/requests(id=${customer.id})}" method="post" class="card stack">
+        <h2>Book a visit</h2>
+        <div class="form-grid">
+          <div class="field"><label for="r-appliance">Appliance</label>
+            <select id="r-appliance" name="applianceId"><option value="">Not sure / new</option>
+              <option th:each="a : ${appliances}" th:value="${a.id}" th:text="${a.describe()}">a</option></select></div>
+          <div class="field"><label for="r-kind">For</label>
+            <select id="r-kind" name="kind"><option value="SERVICE">Scheduled service</option><option value="REPAIR">Repair or complaint</option></select></div>
+          <div class="field"><label for="r-date">Preferred day</label><input type="date" id="r-date" name="preferredOn" th:min="${today}"></div>
+          <div class="field wide"><label for="r-note">Note</label><input type="text" id="r-note" name="note" placeholder="e.g. water leaking from indoor unit"></div>
+        </div>
+        <div><button type="submit" class="btn">Add request</button></div>
+      </form>
+
+      <form th:action="@{/customers/{id}/appliances(id=${customer.id})}" method="post" class="card stack">
+        <h2>Add an appliance</h2>
+        <div class="form-grid">
+          <div class="field"><label for="kind">Type</label>
+            <select id="kind" name="kind"><option th:each="k : ${kinds}" th:value="${k.name()}" th:text="${k.label()}">k</option></select></div>
+          <div class="field"><label for="brand">Brand</label><input type="text" id="brand" name="brand"></div>
+          <div class="field"><label for="model">Model</label><input type="text" id="model" name="model"></div>
+          <div class="field"><label for="serialNumber">Serial no.</label><input type="text" id="serialNumber" name="serialNumber"></div>
+          <div class="field"><label for="capacity">Capacity</label><input type="text" id="capacity" name="capacity" placeholder="1.5 TR, 8 L"></div>
+          <div class="field"><label for="location">Room</label><input type="text" id="location" name="location" placeholder="bedroom"></div>
+        </div>
+        <div><button type="submit" class="btn">Add appliance</button></div>
+      </form>
+
+      <form th:action="@{/customers/{id}(id=${customer.id})}" method="post" class="card stack">
+        <h2>Details</h2>
+        <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" th:value="${customer.name}"></div>
+        <div class="field"><label for="area">Area</label><input type="text" id="area" name="area" th:value="${customer.area}"></div>
+        <div class="field"><label for="address">Address</label><textarea id="address" name="address" rows="2" th:text="${customer.address}"></textarea></div>
+        <div class="field"><label for="notes">Notes</label><textarea id="notes" name="notes" rows="2" th:text="${customer.notes}"></textarea></div>
+        <div><button type="submit" class="btn">Save</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

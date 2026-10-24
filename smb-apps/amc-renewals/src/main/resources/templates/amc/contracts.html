@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Renewals', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Renewals</h1>
+      <p class="sub" th:text="${metrics.dueCount + ' due in the next 30 days (' + @fmt.rupees0(metrics.dueValue) + '), ' + metrics.lapsedCount + ' lapsed and not yet renewed (' + @fmt.rupees0(metrics.lapsedValue) + ').'}">summary</p>
+    </div>
+    <form th:action="@{/contracts}" method="get" class="filters">
+      <input type="hidden" name="show" th:value="${show}">
+      <input type="search" name="q" th:value="${q}" placeholder="Name or mobile" aria-label="Search">
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+
+  <div class="chips" style="margin-bottom: 1rem">
+    <a class="chip" th:href="@{/contracts(show='DUE', q=${q})}" th:classappend="${show == 'DUE'} ? 'active'">Due ±30 days</a>
+    <a class="chip" th:href="@{/contracts(show='IN_FORCE', q=${q})}" th:classappend="${show == 'IN_FORCE'} ? 'active'">In force</a>
+    <a class="chip" th:href="@{/contracts(show='LAPSED', q=${q})}" th:classappend="${show == 'LAPSED'} ? 'active'">Lapsed</a>
+    <a class="chip" th:href="@{/contracts(show='RENEWED', q=${q})}" th:classappend="${show == 'RENEWED'} ? 'active'">Renewed</a>
+    <a class="chip" th:href="@{/contracts(show='CANCELLED', q=${q})}" th:classappend="${show == 'CANCELLED'} ? 'active'">Cancelled</a>
+    <a class="chip" th:href="@{/contracts(show='ALL', q=${q})}" th:classappend="${show == 'ALL'} ? 'active'">All</a>
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Customer</th><th>Appliance</th><th>Plan</th><th class="num">Price</th><th>Ends</th><th>Reminders</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr th:each="c : ${contracts}" class="row-link" th:attr="data-href=@{/contracts/{id}(id=${c.id})}">
+          <td><a th:href="@{/contracts/{id}(id=${c.id})}" th:text="${c.customerName != null ? c.customerName : @fmt.phone(c.phone)}">name</a><br>
+            <small th:text="${@fmt.phone(c.phone)}">phone</small></td>
+          <td><span th:text="${c.appliance()}">appliance</span><br><small th:if="${c.location != null}" th:text="${c.location}">room</small></td>
+          <td th:text="${c.planName}">plan</td>
+          <td class="num"><span th:text="${@fmt.rupees0(c.price)}">₹</span><br>
+            <small th:text="${c.paidAmount != null ? 'paid' : 'not paid'}" th:classappend="${c.paidAmount == null and c.status == 'ACTIVE'} ? 'err'">paid</small></td>
+          <td class="nowrap"><span th:text="${@fmt.date(c.endsOn)}">date</span><br>
+            <small th:if="${c.status == 'ACTIVE'}" th:classappend="${c.endsOn.isBefore(today)} ? 'err'" th:text="${@fmt.relativeDays(c.endsOn)}">in</small></td>
+          <td><span th:text="${c.remindersSent == 0 ? '–' : c.remindersSent}">n</span><br>
+            <small th:if="${c.lastReminder != null}" th:text="${'last ' + @fmt.ago(c.lastReminder)}">last</small></td>
+          <td>
+            <span th:if="${c.status == 'RENEWED'}" class="badge ok">renewed</span>
+            <span th:if="${c.status == 'CANCELLED'}" class="badge">cancelled</span>
+            <span th:if="${c.status == 'ACTIVE' and c.openRequests > 0}" class="badge ok">asked to renew</span>
+            <span th:if="${c.status == 'ACTIVE' and c.openRequests == 0 and c.endsOn.isBefore(today)}" class="badge bad">lapsed</span>
+            <span th:if="${c.status == 'ACTIVE' and c.openRequests == 0 and !c.endsOn.isBefore(today)}" class="badge info">in force</span>
+            <span th:if="${c.optedOut}" class="badge warn">no reminders</span>
+          </td>
+        </tr>
+        <tr th:if="${contracts.isEmpty()}"><td colspan="7" class="empty">No contracts here.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -20,6 +20,7 @@
 		<module>freight-chaser</module>
 		<module>material-tracker</module>
 		<module>export-doc-checker</module>
+		<module>amc-renewals</module>
 	</modules>
 
 	<properties>

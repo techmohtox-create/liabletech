@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:style="${'--accent:' + brand.accent}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title th:text="${'Your AMC · ' + account.name}">Your AMC</title>
+  <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<main class="container narrow">
+  <div class="page-head">
+    <div>
+      <div class="brand"><span class="brand-mark" th:text="${#strings.substring(account.name, 0, 1)}">C</span>
+        <span th:text="${account.name}">Business</span></div>
+      <p class="sub" th:text="${(account.phone != null ? @fmt.phone(account.phone) : '') + (account.address != null ? ' · ' + account.address : '')}">contact</p>
+    </div>
+  </div>
+
+  <div class="flash notice" th:if="${done == 'renewal'}">Thank you! We have your renewal request and will confirm it on WhatsApp.</div>
+  <div class="flash notice" th:if="${done == 'service'}">Thank you! We will confirm the visit on WhatsApp.</div>
+  <div class="flash notice" th:if="${done == 'stopped'}">Done. You will not get reminders from us any more.</div>
+  <div class="flash notice" th:if="${done == 'started'}">Reminders are back on.</div>
+
+  <div class="card">
+    <h2 th:text="${customer.greetingName().isEmpty() ? 'Your maintenance contract' : 'Namaste ' + customer.greetingName() + ' ji'}">Namaste</h2>
+    <dl class="facts">
+      <dt>Appliance</dt><dd th:text="${appliance.describe()}">appliance</dd>
+      <dt th:if="${appliance.model != null or appliance.serialNumber != null}">Model</dt>
+      <dd th:if="${appliance.model != null or appliance.serialNumber != null}" class="mono"
+          th:text="${(appliance.model != null ? appliance.model : '') + (appliance.serialNumber != null ? ' · SN ' + appliance.serialNumber : '')}">model</dd>
+      <dt>Plan</dt><dd th:text="${contract.planName}">plan</dd>
+      <dt>Valid</dt><dd th:text="${@fmt.date(contract.startsOn) + ' to ' + @fmt.date(contract.endsOn)}">dates</dd>
+      <dt>Services</dt><dd th:text="${visitsDone + ' of ' + contract.visitsIncluded + ' done'}">visits</dd>
+      <dt>Status</dt>
+      <dd>
+        <span th:if="${contract.status == 'CANCELLED'}" class="badge">closed</span>
+        <span th:if="${contract.open() and contract.expired(today)}" class="badge bad" th:text="${'ended ' + @fmt.relativeDays(contract.endsOn)}">ended</span>
+        <span th:if="${contract.open() and !contract.expired(today)}" class="badge" th:classappend="${contract.daysLeft(today) <= 30} ? 'warn' : 'ok'"
+              th:text="${contract.daysLeft(today) == 0 ? 'ends today' : 'active, ' + contract.daysLeft(today) + (contract.daysLeft(today) == 1 ? ' day' : ' days') + ' left'}">active</span>
+      </dd>
+    </dl>
+  </div>
+
+  <div class="callout info" th:if="${contract.status == 'CANCELLED'}">
+    This contract is closed. To start a new one, call or WhatsApp us<span th:if="${account.phone != null}" th:text="${' on ' + @fmt.phone(account.phone)}"></span>.
+  </div>
+
+  <div class="card stack" th:if="${renewal != null}">
+    <h2>Renewal requested</h2>
+    <p th:text="${(renewalPlan != null ? renewalPlan.name : contract.planName) + ' for ' + @fmt.rupees0(renewalPrice) + '. We will confirm on WhatsApp once it is paid.'}">plan</p>
+    <a th:if="${upi != null}" class="btn primary block" th:href="${upi}" th:text="${'Pay ' + @fmt.rupees0(renewalPrice) + ' by UPI'}">Pay</a>
+    <p th:if="${upi != null}" class="muted center">Opens Google Pay, PhonePe, Paytm or your bank's app. UPI ID:
+      <span class="mono" th:text="${account.upiId}">upi</span>
+      <button type="button" class="btn small" th:attr="data-copy=${account.upiId}">Copy</button></p>
+    <p th:if="${upi == null}" class="muted">You can pay the technician at the next visit, or ask us for payment details.</p>
+  </div>
+
+  <form class="card stack" th:if="${renewal == null and renewable}" th:action="@{/p/renew/{t}/renew(t=${contract.renewalToken})}" method="post">
+    <h2 th:text="${contract.expired(today) ? 'Renew your AMC' : 'Renew for another year'}">Renew</h2>
+    <p class="muted" th:text="${contract.expired(today) ? 'The new year starts when you renew.' : 'The new year starts on ' + @fmt.date(contract.endsOn.plusDays(1)) + ', so you lose no days by renewing early.'}">when</p>
+    <p th:if="${plans.isEmpty()}"><strong th:text="${contract.planName + ' · ' + @fmt.rupees0(renewalPrice)}">plan</strong></p>
+    <label class="check" th:each="p : ${plans}" style="align-items: flex-start">
+      <input type="radio" name="planId" th:value="${p.id}" th:checked="${p.id == currentPlanId}">
+      <span><strong th:text="${p.name + ' · ' + @fmt.rupees0(p.price)}">plan</strong><br>
+        <small class="muted" th:text="${(p.covers != null ? p.covers : @fmt.plural(p.visits, 'service', 'services') + ' a year') + (p.months != 12 ? ' (' + p.months + ' months)' : '')}">covers</small></span>
+    </label>
+    <div class="field"><label for="renew-note">Anything we should know? (optional)</label><input type="text" id="renew-note" name="note" maxlength="300"></div>
+    <button type="submit" class="btn primary block">Renew my AMC</button>
+  </form>
+
+  <div class="card" th:if="${visit != null}">
+    <h2 th:text="${visit.status == 'SCHEDULED' ? 'Service visit booked' : 'Service visit requested'}">Visit</h2>
+    <p th:if="${visit.status == 'SCHEDULED'}" th:text="${'On ' + @fmt.date(visit.scheduledOn) + (visit.preferredSlot != null ? ', ' + #strings.toLowerCase(visit.preferredSlot) : '') + '.'}">when</p>
+    <p th:if="${visit.status != 'SCHEDULED'}" th:text="${visit.preferredOn != null ? 'You asked for ' + @fmt.date(visit.preferredOn) + (visit.preferredSlot != null ? ', ' + #strings.toLowerCase(visit.preferredSlot) : '') + '. We will confirm on WhatsApp.' : 'We will call you to fix a time.'}">asked</p>
+  </div>
+
+  <form class="card stack" th:if="${visit == null and contract.open()}" th:action="@{/p/renew/{t}/service(t=${contract.renewalToken})}" method="post">
+    <h2>Book a service visit</h2>
+    <p class="muted" th:if="${contract.expired(today)}">Your AMC has ended, so the visit is charged unless you renew.</p>
+    <div class="field"><label for="preferredOn">Day</label>
+      <input type="date" id="preferredOn" name="preferredOn" required th:min="${earliest}" th:max="${latest}" th:value="${earliest}"></div>
+    <div class="field"><label for="slot">Time</label>
+      <select id="slot" name="slot"><option th:each="s : ${slots}" th:value="${s}" th:text="${s}">slot</option></select></div>
+    <div class="field"><label for="service-note">Problem, if any (optional)</label><input type="text" id="service-note" name="note" maxlength="300" placeholder="e.g. not cooling, water leaking"></div>
+    <button type="submit" class="btn block">Request this day</button>
+  </form>
+
+  <div class="card">
+    <form th:if="${!customer.optedOut}" th:action="@{/p/renew/{t}/stop(t=${contract.renewalToken})}" method="post" class="inline-form">
+      <span class="muted">Don't want reminders?</span> <button type="submit" class="btn small">Stop reminders</button>
+    </form>
+    <form th:if="${customer.optedOut}" th:action="@{/p/renew/{t}/start(t=${contract.renewalToken})}" method="post" class="inline-form">
+      <span class="muted">Reminders are off.</span> <button type="submit" class="btn small">Turn them back on</button>
+    </form>
+  </div>
+  <p class="center muted"><small th:text="${account.name + ' sends these reminders with ' + brand.name + '.'}">footer</small></p>
+</main>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Setup', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Setup</h1>
+      <p class="sub">The AMC plans you sell, the technicians who send label photos, and when customers are reminded.</p>
+    </div>
+  </div>
+
+  <div class="callout warn" th:if="${account.upiId == null or #strings.isEmpty(account.upiId)}">
+    Add your UPI ID in <a th:href="@{/settings}">Settings</a> and the renewal link shows customers a “Pay by UPI” button for the exact amount.
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card">
+        <div class="card-head"><h2>AMC plans</h2></div>
+        <div class="finding" th:each="p : ${plans}">
+          <div class="finding-head">
+            <strong th:text="${p.name}">Plan</strong>
+            <span class="badge" th:text="${p.family == 'ANY' ? 'any appliance' : (p.family == 'WATER_HEATER' ? 'water heater' : p.family)}">AC</span>
+            <span th:text="${@fmt.rupees0(p.price) + ' · ' + p.months + ' months · ' + @fmt.plural(p.visits, 'visit', 'visits')}">price</span>
+            <span th:if="${!p.active}" class="badge warn">not sold now</span>
+          </div>
+          <p class="muted" th:if="${p.covers != null}" th:text="${p.covers}">covers</p>
+          <details>
+            <summary>Edit</summary>
+            <form th:action="@{/setup/plans/{id}(id=${p.id})}" method="post" class="stack" style="margin-top: 0.6rem">
+              <div class="form-grid">
+                <div class="field"><label th:for="${'name-' + p.id}">Name</label><input type="text" th:id="${'name-' + p.id}" name="name" th:value="${p.name}" required></div>
+                <div class="field"><label th:for="${'price-' + p.id}">Price (₹)</label><input type="number" min="1" step="1" th:id="${'price-' + p.id}" name="price" th:value="${p.price.toBigInteger()}" required></div>
+                <div class="field"><label th:for="${'months-' + p.id}">Months</label><input type="number" min="1" max="60" th:id="${'months-' + p.id}" name="months" th:value="${p.months}" required></div>
+                <div class="field"><label th:for="${'visits-' + p.id}">Visits included</label><input type="number" min="0" max="24" th:id="${'visits-' + p.id}" name="visits" th:value="${p.visits}" required></div>
+                <div class="field wide"><label th:for="${'covers-' + p.id}">What it covers</label><textarea th:id="${'covers-' + p.id}" name="covers" rows="2" th:text="${p.covers}"></textarea></div>
+              </div>
+              <label class="check"><input type="checkbox" name="active" value="true" th:checked="${p.active}"> Offered to customers</label>
+              <div><button type="submit" class="btn">Save plan</button></div>
+            </form>
+          </details>
+        </div>
+        <p class="empty" th:if="${plans.isEmpty()}">No plans yet.</p>
+        <details>
+          <summary>Add a plan</summary>
+          <form th:action="@{/setup/plans}" method="post" class="stack" style="margin-top: 0.6rem">
+            <div class="form-grid">
+              <div class="field"><label for="new-name">Name</label><input type="text" id="new-name" name="name" required placeholder="e.g. Geyser Care AMC"></div>
+              <div class="field"><label for="new-family">For</label>
+                <select id="new-family" name="family">
+                  <option value="AC">ACs</option><option value="RO">RO purifiers</option><option value="WATER_HEATER">Water heaters</option><option value="ANY">Any appliance</option>
+                </select></div>
+              <div class="field"><label for="new-price">Price (₹)</label><input type="number" min="1" step="1" id="new-price" name="price" required></div>
+              <div class="field"><label for="new-months">Months</label><input type="number" min="1" max="60" id="new-months" name="months" value="12" required></div>
+              <div class="field"><label for="new-visits">Visits included</label><input type="number" min="0" max="24" id="new-visits" name="visits" value="2" required></div>
+              <div class="field wide"><label for="new-covers">What it covers</label><textarea id="new-covers" name="covers" rows="2"></textarea></div>
+            </div>
+            <div><button type="submit" class="btn primary">Add plan</button></div>
+          </form>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>Technicians</h2>
+        <p class="muted">These WhatsApp numbers can send label photos. Each photo becomes the customer's appliance record and, with “AMC” and the amount in the caption, their contract.</p>
+        <table>
+          <tbody>
+          <tr th:each="t : ${technicians}">
+            <td th:text="${t.name}">name</td>
+            <td class="nowrap" th:text="${@fmt.phone(t.phone)}">phone</td>
+            <td>
+              <form th:action="@{/setup/technicians/{id}/active(id=${t.id})}" method="post" class="inline-form">
+                <label class="check"><input type="checkbox" name="active" value="true" th:checked="${t.active}" data-submit-on-change> Can send</label>
+              </form>
+            </td>
+          </tr>
+          <tr th:if="${technicians.isEmpty()}"><td colspan="3" class="empty">No technicians yet.</td></tr>
+          </tbody>
+        </table>
+        <form th:action="@{/setup/technicians}" method="post" class="row-form" style="margin-top: 0.8rem">
+          <input type="text" name="name" required placeholder="Name" aria-label="Technician name">
+          <input type="tel" name="phone" required placeholder="WhatsApp number" aria-label="WhatsApp number">
+          <button type="submit" class="btn">Add technician</button>
+        </form>
+        <details>
+          <summary>What technicians type</summary>
+          <p>A photo of the rating label, with the customer's mobile number in the caption. Add <span class="mono">AMC 1499</span> if they sold one, <span class="mono">paid</span> if they collected the money, and the room:</p>
+          <p class="mono">9812345678 Sharma AMC 1499 paid bedroom</p>
+          <p><span class="mono">TODAY</span> lists their booked visits for today and tomorrow.</p>
+        </details>
+      </div>
+
+      <div class="card flush" th:if="${!recent.isEmpty()}">
+        <div class="card-head"><h2>Latest reminders</h2><a th:href="@{/outbox}">Outbox</a></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="r : ${recent}" class="row-link" th:attr="data-href=@{/contracts/{id}(id=${r.contractId})}">
+              <td><a th:href="@{/contracts/{id}(id=${r.contractId})}" th:text="${r.customerName != null ? r.customerName : @fmt.phone(r.phone)}">c</a></td>
+              <td th:text="${r.describe()}">what</td>
+              <td class="right"><small th:text="${@fmt.dateTime(r.sentAt)}">when</small></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <form th:action="@{/setup/reminders}" method="post" class="card stack">
+        <h2>Reminder schedule</h2>
+        <div class="field">
+          <label for="renewalOffsets">Days from the end of the contract</label>
+          <input type="text" id="renewalOffsets" name="renewalOffsets" th:value="${settings.renewalOffsets}" required class="mono">
+          <span class="hint">Negative is before the end date. Each contract gets each reminder once, until it is renewed or the customer replies STOP.</span>
+        </div>
+        <ul>
+          <li th:each="d : ${schedule}" th:text="${d}">30 days before</li>
+        </ul>
+        <label class="check"><input type="checkbox" name="serviceReminders" value="true" th:checked="${settings.serviceReminders}"> Also remind customers when an included service visit is due</label>
+        <label class="check"><input type="checkbox" name="autoSend" value="true" th:checked="${settings.autoSend}"> Send automatically every morning at 10</label>
+        <div><button type="submit" class="btn primary">Save schedule</button></div>
+      </form>
+
+      <form th:action="@{/setup/reminders/run}" method="post" class="card"
+            data-confirm="Send every reminder that is due today now?">
+        <h2>Send today's reminders now</h2>
+        <p class="muted">Sends what the morning run would send. Nothing is sent twice.</p>
+        <button type="submit" class="btn">Send now</button>
+      </form>
+
+      <div class="card">
+        <h2>What customers receive</h2>
+        <p class="muted">An example customer, with your business name and your current plan prices.</p>
+        <h3>15 days before the end</h3>
+        <div class="bubble out" style="max-width: none; margin-bottom: 0.9rem" th:text="${previews.renewal}">text</div>
+        <h3>A week after it lapsed</h3>
+        <div class="bubble out" style="max-width: none; margin-bottom: 0.9rem" th:text="${previews.lapsed}">text</div>
+        <h3 th:if="${settings.serviceReminders}">When a service visit is due</h3>
+        <div class="bubble out" style="max-width: none; margin-bottom: 0.9rem" th:if="${settings.serviceReminders}" th:text="${previews.service}">text</div>
+      </div>
+
+      <div class="card">
+        <h2>Your own WhatsApp number</h2>
+        <p>Messages go from the shared number until you connect your WhatsApp Business number in <a th:href="@{/settings}">Settings</a>. WhatsApp then needs these message templates approved once (Meta Business Manager, category Utility):</p>
+        <dl class="facts">
+          <dt class="mono">amc_renewal_reminder</dt><dd>name, appliance, end date, price, link</dd>
+          <dt class="mono">amc_service_due</dt><dd>name, appliance, visit number, link</dd>
+          <dt class="mono">amc_new_request</dt><dd>customer, what they asked for (to you)</dd>
+          <dt class="mono">amc_customer_message</dt><dd>customer, their message (to you)</dd>
+        </dl>
+        <p class="muted">The README has the wording for each.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

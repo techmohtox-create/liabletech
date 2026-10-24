@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${contract.planName + ' · ' + customer.displayName()}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/contracts}">Renewals</a> / <a th:href="@{/customers/{id}(id=${customer.id})}" th:text="${customer.displayName()}">customer</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${contract.planName}">Plan</h1>
+      <p class="sub" th:text="${appliance.describe() + ' · ' + customer.displayName() + ' · ' + @fmt.phone(customer.phone)}">what</p>
+    </div>
+    <div class="actions">
+      <span th:if="${contract.status == 'RENEWED'}" class="badge ok">renewed</span>
+      <span th:if="${contract.status == 'CANCELLED'}" class="badge">cancelled</span>
+      <span th:if="${contract.open()}" class="badge" th:classappend="${contract.expired(today)} ? 'bad' : (${contract.daysLeft(today) <= 30} ? 'warn' : 'info')"
+            th:text="${contract.dueText(today)}">due</span>
+      <form th:if="${contract.open() and !customer.optedOut}" th:action="@{/contracts/{id}/remind(id=${contract.id})}" method="post" class="inline-form"
+            th:attr="data-confirm=${'Send ' + customer.displayName() + ' a renewal reminder on WhatsApp now?'}">
+        <button type="submit" class="btn">Remind now</button>
+      </form>
+      <button type="button" class="btn" th:if="${contract.open()}" th:attr="data-copy=${link}">Copy renewal link</button>
+    </div>
+  </div>
+
+  <div class="callout ok" th:if="${renewedBy != null}">
+    Renewed: <a th:href="@{/contracts/{id}(id=${renewedBy.id})}" th:text="${renewedBy.planName + ' until ' + @fmt.date(renewedBy.endsOn)}">new</a>.
+  </div>
+  <div class="callout warn" th:if="${customer.optedOut}">This customer replied STOP. No reminders go out until they reply START or you turn them back on.</div>
+
+  <div class="split">
+    <div>
+      <div class="card">
+        <h2>Contract</h2>
+        <dl class="facts">
+          <dt>Customer</dt><dd><a th:href="@{/customers/{id}(id=${customer.id})}" th:text="${customer.displayName()}">c</a>
+            <span class="muted" th:text="${' · ' + @fmt.phone(customer.phone) + (customer.area != null ? ' · ' + customer.area : '')}"></span></dd>
+          <dt>Appliance</dt><dd><span th:text="${appliance.describe()}">a</span>
+            <span class="muted mono" th:if="${appliance.model != null or appliance.serialNumber != null}"
+                  th:text="${' · ' + (appliance.model != null ? appliance.model : '') + (appliance.serialNumber != null ? ' SN ' + appliance.serialNumber : '')}"></span></dd>
+          <dt>Plan</dt><dd th:text="${contract.planName + ', ' + contract.visitsIncluded + (contract.visitsIncluded == 1 ? ' visit' : ' visits')}">p</dd>
+          <dt>Price</dt><dd th:text="${@fmt.rupees(contract.price)}">₹</dd>
+          <dt>Runs</dt><dd th:text="${@fmt.date(contract.startsOn) + ' to ' + @fmt.date(contract.endsOn)}">dates</dd>
+          <dt>Payment</dt><dd th:text="${contract.paid() ? @fmt.rupees(contract.paidAmount) + ' on ' + @fmt.date(contract.paidOn) + (contract.paymentMode != null ? ' by ' + contract.paymentModeLabel() : '') : 'not recorded'}">paid</dd>
+          <dt>Sold by</dt><dd th:text="${contract.source == 'TECHNICIAN' ? 'technician, from the label photo' : (contract.source == 'RENEWAL' ? 'renewal' : 'office')}">src</dd>
+          <dt>Renewal link</dt><dd><a th:href="${link}" target="_blank" rel="noopener" class="mono" th:text="${link}">link</a></dd>
+        </dl>
+      </div>
+
+      <div class="card" th:if="${!visits.isEmpty()}">
+        <h2>Service visits</h2>
+        <p class="muted" th:text="${visitsDone + ' of ' + contract.visitsIncluded + ' done. Customers get a reminder a few days before each is due.'}">n</p>
+        <table>
+          <tbody>
+          <tr th:each="v : ${visits}">
+            <td th:text="${'Visit ' + v.number}">Visit</td>
+            <td th:text="${'due around ' + @fmt.date(v.dueOn)}">date</td>
+            <td><span th:if="${v.number <= visitsDone}" class="badge ok">done</span>
+              <span th:if="${v.number > visitsDone and v.dueOn.isBefore(today)}" class="badge warn">overdue</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Reminders</h2>
+        <ul class="timeline" th:if="${!reminders.isEmpty()}">
+          <li th:each="r : ${reminders}">
+            <div th:text="${r.describe()}">what</div>
+            <div class="when" th:text="${@fmt.dateTime(r.sentAt)}">when</div>
+          </li>
+        </ul>
+        <p class="muted" th:if="${reminders.isEmpty()}">None sent yet. The first goes 30 days before the contract ends (change the schedule under Setup).</p>
+      </div>
+
+      <div class="card" th:if="${!messages.isEmpty()}">
+        <h2>Messages</h2>
+        <div class="thread" style="max-height: 420px">
+          <div class="bubble out" th:each="m : ${messages}"><span th:text="${m.body}">text</span><span class="meta" th:text="${@fmt.dateTime(m.createdAt) + ' · ' + @fmt.label(m.status)}">t</span></div>
+        </div>
+      </div>
+
+      <div class="card flush" th:if="${history.size() > 1}">
+        <div class="card-head"><h2>Contracts for this appliance</h2></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="h : ${history}" class="row-link" th:attr="data-href=@{/contracts/{id}(id=${h.id})}">
+              <td><a th:href="@{/contracts/{id}(id=${h.id})}" th:text="${h.planName}">plan</a></td>
+              <td th:text="${@fmt.date(h.startsOn) + ' – ' + @fmt.date(h.endsOn)}">dates</td>
+              <td class="num" th:text="${@fmt.rupees0(h.price)}">₹</td>
+              <td><span class="badge" th:classappend="${h.status == 'RENEWED'} ? 'ok'" th:text="${h.id == contract.id ? 'this one' : @fmt.label(h.status)}">s</span></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <form class="card stack" th:if="${contract.open()}" th:action="@{/contracts/{id}/renew(id=${contract.id})}" method="post">
+        <h2>Renew</h2>
+        <p class="muted" th:text="${contract.expired(today) ? 'It lapsed, so the new year starts today.' : 'The new year starts on ' + @fmt.date(contract.endsOn.plusDays(1)) + ', the day after this one ends.'}">when</p>
+        <div class="field"><label for="planId">Plan</label>
+          <select id="planId" name="planId">
+            <option th:each="p : ${plans}" th:value="${p.id}" th:selected="${p.id == contract.planId}" th:text="${p.name + ' · ' + @fmt.rupees0(p.price)}">plan</option>
+          </select></div>
+        <div class="field"><label for="price">Price</label><input type="number" step="1" min="1" id="price" name="price" th:placeholder="${@fmt.num(renewalPrice)}">
+          <span class="hint">Leave empty for the plan's price.</span></div>
+        <label class="check"><input type="checkbox" name="paid" value="true"> Paid</label>
+        <div class="field"><label for="paymentMode">Paid by</label>
+          <select id="paymentMode" name="paymentMode"><option value="UPI">UPI</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK">Bank transfer</option></select></div>
+        <div><button type="submit" class="btn primary">Renew and thank the customer</button></div>
+      </form>
+
+      <form class="card stack" th:if="${!contract.paid() and contract.status != 'CANCELLED'}" th:action="@{/contracts/{id}/payment(id=${contract.id})}" method="post">
+        <h2>Record payment</h2>
+        <div class="form-grid">
+          <div class="field"><label for="amount">Amount</label><input type="number" step="1" min="1" id="amount" name="amount" required th:value="${@fmt.num(contract.price).replace(',', '')}"></div>
+          <div class="field"><label for="mode">Paid by</label>
+            <select id="mode" name="mode"><option value="UPI">UPI</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK">Bank transfer</option></select></div>
+        </div>
+        <div><button type="submit" class="btn">Save payment</button></div>
+      </form>
+
+      <div class="card" th:if="${contract.open()}">
+        <h2>Customer's link</h2>
+        <p>Every reminder carries this link. The customer can pick a plan to renew, pay by UPI (once your UPI ID is in Settings) or book a service day. Nothing is renewed until you confirm it here.</p>
+        <p><a class="btn small" th:href="${link}" target="_blank" rel="noopener">Open as the customer sees it</a></p>
+      </div>
+
+      <form class="card" th:if="${contract.open()}" th:action="@{/contracts/{id}/cancel(id=${contract.id})}" method="post"
+            data-confirm="Cancel this contract? Reminders for it stop.">
+        <h2>Not renewing?</h2>
+        <p class="muted">If the customer sold the appliance or moved to another service company, close the contract so reminders stop.</p>
+        <button type="submit" class="btn danger">Cancel contract</button>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

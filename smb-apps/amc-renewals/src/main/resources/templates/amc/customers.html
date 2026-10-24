@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Customers', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Customers</h1>
+      <p class="sub">Most customers arrive from a technician's label photo. Add others here.</p>
+    </div>
+    <form th:action="@{/customers}" method="get" class="filters">
+      <input type="search" name="q" th:value="${q}" placeholder="Name, mobile or area" aria-label="Search">
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+
+  <div class="split">
+    <div class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Customer</th><th>Area</th><th class="num">Appliances</th><th class="num">AMCs</th><th>Next renewal</th></tr></thead>
+          <tbody>
+          <tr th:each="c : ${customers}" class="row-link" th:attr="data-href=@{/customers/{id}(id=${c.id})}">
+            <td><a th:href="@{/customers/{id}(id=${c.id})}" th:text="${c.name != null ? c.name : @fmt.phone(c.phone)}">name</a><br>
+              <small th:text="${@fmt.phone(c.phone)}">phone</small>
+              <span th:if="${c.optedOut}" class="badge warn">no reminders</span></td>
+            <td th:text="${c.area != null ? c.area : '–'}">area</td>
+            <td class="num" th:text="${c.appliances}">0</td>
+            <td class="num" th:text="${c.activeContracts}">0</td>
+            <td class="nowrap"><span th:text="${c.nextEnd != null ? @fmt.shortDate(c.nextEnd) : '–'}">date</span><br>
+              <small th:if="${c.nextEnd != null}" th:classappend="${c.nextEnd.isBefore(today)} ? 'err'" th:text="${@fmt.relativeDays(c.nextEnd)}">in</small></td>
+          </tr>
+          <tr th:if="${customers.isEmpty()}"><td colspan="5" class="empty">No customers found.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <form th:action="@{/customers}" method="post" class="card stack">
+      <h2>Add a customer</h2>
+      <div class="field"><label for="phone">Mobile (WhatsApp)</label><input type="tel" id="phone" name="phone" required placeholder="98xxxxxxxx"></div>
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" placeholder="e.g. Sunita Deshpande"></div>
+      <div class="field"><label for="area">Area</label><input type="text" id="area" name="area" placeholder="e.g. Kothrud"></div>
+      <div class="field"><label for="address">Address</label><textarea id="address" name="address" rows="2"></textarea></div>
+      <div><button type="submit" class="btn primary">Add</button></div>
+      <p class="hint">Then add the appliance and its AMC. A technician's label photo with this number in the caption does it in one step.</p>
+    </form>
+  </div>
+</div>
+</body>
+</html>

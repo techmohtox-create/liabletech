@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Labels', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Label photos</h1>
+      <p class="sub">Technicians photograph the rating label at the customer's home and send it on WhatsApp. Clear labels with the customer's number are saved automatically; the rest wait here.</p>
+    </div>
+  </div>
+
+  <div class="callout info" th:if="${!aiEnabled}">
+    Automatic reading is off because no AI key is set. Photos still arrive here; type the model and serial number in from the photo.
+  </div>
+
+  <div class="chips" style="margin-bottom: 1rem">
+    <a class="chip" th:href="@{/labels}" th:classappend="${show != 'all'} ? 'active'">To finish</a>
+    <a class="chip" th:href="@{/labels(show='all')}" th:classappend="${show == 'all'} ? 'active'">All</a>
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Label</th><th>Caption</th><th>Customer</th><th>From</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr th:each="s : ${scans}" class="row-link" th:attr="data-href=${s.status == 'LINKED' and s.customerId != null ? '/customers/' + s.customerId : '/labels/' + s.id}">
+          <td style="width: 64px"><img class="thumb" th:src="@{/files/{id}(id=${s.fileId})}" alt="Label photo"></td>
+          <td><a th:href="@{/labels/{id}(id=${s.id})}" th:text="${s.brand != null ? s.brand + (s.model != null ? ' ' + s.model : '') : 'Not read'}">label</a><br>
+            <small class="mono" th:text="${s.serialNumber != null ? 'SN ' + s.serialNumber : ''}">sn</small></td>
+          <td><small th:text="${s.caption != null ? s.caption : '–'}">caption</small></td>
+          <td><span th:text="${s.customerName != null ? s.customerName : (s.customerPhone != null ? @fmt.phone(s.customerPhone) : '–')}">c</span>
+            <span th:if="${s.amcSold}" class="badge accent">AMC sold</span></td>
+          <td><span th:text="${s.technicianName != null ? s.technicianName : 'Office'}">t</span><br><small th:text="${@fmt.ago(s.createdAt)}">when</small></td>
+          <td>
+            <span th:if="${s.status == 'LINKED'}" class="badge ok">saved</span>
+            <span th:if="${s.status == 'REJECTED'}" class="badge">set aside</span>
+            <span th:if="${s.status == 'NEEDS_REVIEW' and s.readingStatus == 'MANUAL'}" class="badge warn">type it in</span>
+            <span th:if="${s.status == 'NEEDS_REVIEW' and s.readingStatus != 'MANUAL' and s.customerPhone == null}" class="badge warn">which customer?</span>
+            <span th:if="${s.status == 'NEEDS_REVIEW' and s.readingStatus != 'MANUAL' and s.customerPhone != null}" class="badge info">check</span>
+          </td>
+        </tr>
+        <tr th:if="${scans.isEmpty()}"><td colspan="6" class="empty" th:text="${show == 'all' ? 'No label photos yet.' : 'Nothing to finish. Every label photo is saved.'}">none</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

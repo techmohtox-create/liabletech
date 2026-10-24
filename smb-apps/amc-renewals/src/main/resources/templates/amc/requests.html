@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Requests', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Requests</h1>
+      <p class="sub">Customers who tapped the link or replied to a reminder. Confirm renewals once paid; book visits and the customer is told on WhatsApp.</p>
+    </div>
+  </div>
+
+  <div class="chips" style="margin-bottom: 1rem">
+    <a class="chip" th:href="@{/requests}" th:classappend="${show != 'done'} ? 'active'">Open</a>
+    <a class="chip" th:href="@{/requests(show='done')}" th:classappend="${show == 'done'} ? 'active'">Done</a>
+  </div>
+
+  <div class="card">
+    <div class="finding" th:each="r : ${requests}">
+      <div class="finding-head">
+        <span class="badge" th:classappend="${r.kind == 'RENEWAL'} ? 'ok' : (${r.kind == 'REPAIR'} ? 'warn' : 'info')"
+              th:text="${r.kind == 'RENEWAL' ? 'renewal' : (r.kind == 'REPAIR' ? 'enquiry' : 'service visit')}">kind</span>
+        <strong><a th:href="@{/customers/{id}(id=${r.customerId})}" th:text="${r.customerName != null ? r.customerName : @fmt.phone(r.phone)}">name</a></strong>
+        <span class="muted" th:text="${@fmt.phone(r.phone) + (r.area != null ? ' · ' + r.area : '')}">phone</span>
+        <span th:if="${r.status == 'SCHEDULED'}" class="badge info" th:text="${'booked ' + @fmt.shortDate(r.scheduledOn)}">booked</span>
+        <span th:if="${r.status == 'DONE'}" class="badge ok">done</span>
+        <span th:if="${r.status == 'DISMISSED'}" class="badge">dismissed</span>
+        <small class="right muted" style="margin-left: auto"
+               th:text="${(r.source == 'LINK' ? 'from the link' : (r.source == 'WHATSAPP' ? 'on WhatsApp' : 'by the office')) + ', ' + @fmt.ago(r.createdAt)}">when</small>
+      </div>
+      <p>
+        <span th:if="${r.appliance() != null}" th:text="${r.appliance()}">appliance</span>
+        <span th:if="${r.kind == 'RENEWAL'}" th:text="${' · wants ' + (r.planName != null ? r.planName + ' at ' + @fmt.rupees0(r.planPrice) : r.contractPlan) + (r.endsOn != null ? '; current AMC ' + (r.endsOn.isBefore(today) ? 'ended ' : 'ends ') + @fmt.date(r.endsOn) : '')}">plan</span>
+        <span th:if="${r.kind != 'RENEWAL' and r.preferredOn != null}" th:text="${' · asked for ' + @fmt.date(r.preferredOn) + (r.preferredSlot != null ? ', ' + #strings.toLowerCase(r.preferredSlot) : '')}">day</span>
+        <span th:if="${r.technicianName != null}" th:text="${' · ' + r.technicianName}">tech</span>
+      </p>
+      <p class="muted" th:if="${r.note != null}" th:text="${r.note}">note</p>
+
+      <div class="finding-foot" th:if="${r.status == 'NEW' or r.status == 'SCHEDULED'}">
+        <form th:if="${r.renewable()}" th:action="@{/requests/{id}/renew(id=${r.id})}" method="post" class="row-form">
+          <select name="planId" aria-label="Plan">
+            <option th:each="p : ${plans}" th:if="${r.family() == null or p.appliesTo(r.family())}" th:value="${p.id}" th:selected="${p.id == r.planId}" th:text="${p.name + ' · ' + @fmt.rupees0(p.price)}">p</option>
+          </select>
+          <label class="check"><input type="checkbox" name="paid" value="true"> paid by</label>
+          <select name="paymentMode" aria-label="Paid by"><option value="UPI">UPI</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK">Bank</option></select>
+          <button type="submit" class="btn primary small">Renew</button>
+        </form>
+        <span th:if="${r.kind == 'RENEWAL' and !r.renewable()}" class="muted">The contract is already renewed or closed.</span>
+
+        <form th:if="${r.kind != 'RENEWAL'}" th:action="@{/requests/{id}/schedule(id=${r.id})}" method="post" class="row-form">
+          <input type="date" name="on" required aria-label="Visit day" th:min="${today}"
+                 th:value="${r.scheduledOn != null ? r.scheduledOn : (r.preferredOn != null and !r.preferredOn.isBefore(today) ? r.preferredOn : today.plusDays(1))}">
+          <select name="technicianId" aria-label="Technician"><option value="">Technician…</option>
+            <option th:each="t : ${technicians}" th:value="${t.id}" th:selected="${t.id == r.technicianId}" th:text="${t.name}">t</option></select>
+          <button type="submit" class="btn small" th:classappend="${r.status == 'NEW'} ? 'primary'" th:text="${r.status == 'SCHEDULED' ? 'Change booking' : 'Book visit'}">Book</button>
+        </form>
+
+        <form th:if="${r.status == 'SCHEDULED'}" th:action="@{/requests/{id}/done(id=${r.id})}" method="post" class="inline-form">
+          <button type="submit" class="btn ok small">Visit done</button>
+        </form>
+        <form th:action="@{/requests/{id}/dismiss(id=${r.id})}" method="post" class="inline-form right" data-confirm="Dismiss this request?">
+          <button type="submit" class="btn small">Dismiss</button>
+        </form>
+      </div>
+    </div>
+    <p class="empty" th:if="${requests.isEmpty()}" th:text="${show == 'done' ? 'Nothing done yet.' : 'No open requests. Customers who tap the link in a reminder or reply YES show up here.'}">none</p>
+  </div>
+</div>
+</body>
+</html>

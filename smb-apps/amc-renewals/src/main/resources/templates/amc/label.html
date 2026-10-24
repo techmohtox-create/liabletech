@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Label photo', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/labels}">Labels</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${scan.brand != null ? scan.brand + (scan.model != null ? ' ' + scan.model : '') : 'Label photo'}">Label</h1>
+      <p class="sub" th:text="${(scan.caption != null ? '“' + scan.caption + '” · ' : '') + @fmt.dateTime(scan.createdAt)}">caption</p>
+    </div>
+    <div class="actions">
+      <span class="confidence" th:if="${scan.confidence != null}">read
+        <span class="meter" th:classappend="${scan.confidence.doubleValue() < 0.5} ? 'low' : (${scan.confidence.doubleValue() < 0.75} ? 'mid')"><span th:style="${'width:' + (scan.confidence.doubleValue() * 100) + '%'}"></span></span>
+        <span th:text="${@fmt.percent(scan.confidence.doubleValue() * 100)}">%</span></span>
+      <span th:if="${scan.status == 'LINKED'}" class="badge ok">saved</span>
+      <span th:if="${scan.status == 'REJECTED'}" class="badge">set aside</span>
+    </div>
+  </div>
+
+  <div class="callout warn" th:if="${scan.readingStatus == 'MANUAL'}"
+       th:text="${scan.readingNote != null ? 'Not read automatically (' + scan.readingNote + '). Type the label in from the photo.' : 'Not read automatically. Type the label in from the photo.'}">note</div>
+  <div class="callout ok" th:if="${appliance != null}">
+    Saved as <a th:href="@{/customers/{id}(id=${appliance.customerId})}" th:text="${appliance.describe()}">appliance</a>. Saving again updates it.
+  </div>
+
+  <div class="split">
+    <div class="doc-view">
+      <img th:if="${file.image}" th:src="@{/files/{id}(id=${file.id})}" alt="Appliance label">
+      <iframe th:if="${file.pdf}" th:src="@{/files/{id}(id=${file.id})}" title="Label"></iframe>
+    </div>
+
+    <form th:action="@{/labels/{id}(id=${scan.id})}" th:object="${form}" method="post" class="stack">
+      <div class="card stack">
+        <h2>Appliance</h2>
+        <div class="form-grid">
+          <div class="field"><label for="kind">Type</label>
+            <select id="kind" th:field="*{kind}"><option value="">Choose…</option>
+              <option th:each="k : ${kinds}" th:value="${k.name()}" th:text="${k.label()}">k</option></select></div>
+          <div class="field"><label for="brand">Brand</label><input type="text" id="brand" th:field="*{brand}"></div>
+          <div class="field"><label for="model">Model</label><input type="text" id="model" th:field="*{model}" class="mono"></div>
+          <div class="field"><label for="serialNumber">Serial no.</label><input type="text" id="serialNumber" th:field="*{serialNumber}" class="mono"></div>
+          <div class="field"><label for="capacity">Capacity</label><input type="text" id="capacity" th:field="*{capacity}"></div>
+          <div class="field"><label for="refrigerant">Refrigerant</label><input type="text" id="refrigerant" th:field="*{refrigerant}"></div>
+          <div class="field"><label for="manufactured">Made</label><input type="text" id="manufactured" th:field="*{manufactured}"></div>
+          <div class="field"><label for="location">Room</label><input type="text" id="location" th:field="*{location}" placeholder="bedroom"></div>
+        </div>
+      </div>
+
+      <div class="card stack">
+        <h2>Customer</h2>
+        <p class="muted" th:if="${existing != null}">Existing customer: <a th:href="@{/customers/{id}(id=${existing.id})}" th:text="${existing.displayName()}">c</a></p>
+        <div class="form-grid">
+          <div class="field"><label for="customerPhone">Mobile (WhatsApp)</label><input type="tel" id="customerPhone" th:field="*{customerPhone}" required th:readonly="${scan.status == 'LINKED'}"></div>
+          <div class="field"><label for="customerName">Name</label><input type="text" id="customerName" th:field="*{customerName}"></div>
+          <div class="field"><label for="area">Area</label><input type="text" id="area" th:field="*{area}"></div>
+          <div class="field wide"><label for="address">Address</label><input type="text" id="address" th:field="*{address}"></div>
+        </div>
+      </div>
+
+      <div class="card stack" th:if="${scan.status != 'LINKED'}">
+        <h2>AMC</h2>
+        <div class="form-grid">
+          <div class="field"><label for="planId">Plan</label>
+            <select id="planId" th:field="*{planId}"><option value="">No AMC sold</option>
+              <option th:each="p : ${plans}" th:value="${p.id}" th:text="${p.name + ' · ' + @fmt.rupees0(p.price)}">p</option></select>
+            <span class="hint" th:if="${scan.amcSold}" th:text="${'Caption says an AMC was sold' + (scan.amount != null ? ' for ' + @fmt.rupees0(scan.amount) : '') + '.'}">hint</span></div>
+          <div class="field"><label for="price">Price</label><input type="number" min="1" step="1" id="price" th:field="*{price}" placeholder="plan price"></div>
+          <div class="field"><label for="startsOn">Starts</label><input type="date" id="startsOn" th:field="*{startsOn}"><span class="hint">Empty means today.</span></div>
+          <div class="field"><label for="paymentMode">Paid by</label>
+            <select id="paymentMode" th:field="*{paymentMode}"><option value="UPI">UPI</option><option value="CASH">Cash</option><option value="CARD">Card</option><option value="BANK">Bank transfer</option></select></div>
+        </div>
+        <label class="check"><input type="checkbox" th:field="*{paid}"> Paid to the technician</label>
+        <p class="hint">If this appliance already has an AMC, picking a plan renews it.</p>
+      </div>
+      <p class="muted" th:if="${scan.status == 'LINKED'}">Sell or renew the AMC from the customer's page.</p>
+
+      <div class="actions">
+        <button type="submit" class="btn primary" th:text="${scan.status == 'LINKED' ? 'Save changes' : 'Save to customer'}">Save</button>
+      </div>
+    </form>
+  </div>
+
+  <form th:if="${scan.status == 'NEEDS_REVIEW'}" th:action="@{/labels/{id}/reject(id=${scan.id})}" method="post" class="inline-form" style="margin-top: 1rem"
+        data-confirm="Set this photo aside? Nothing is saved from it.">
+    <button type="submit" class="btn small">Not a label / duplicate: set aside</button>
+  </form>
+</div>
+</body>
+</html>

@@ -296,6 +296,9 @@ input[type=file] { font: inherit; max-width: 100%; }
 .filters select { width: auto; max-width: 260px; }
 .filters input[type=search] { width: auto; flex: 1 1 180px; max-width: 280px; }
 .inline-form input[type=text] { width: auto; }
+.row-form { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0; }
+.row-form input, .row-form select { width: auto; max-width: 100%; }
+.row-form input[type=text], .row-form input[type=tel] { flex: 1 1 160px; }
 
 .btn, button.btn {
   display: inline-flex;
@@ -394,7 +397,12 @@ input[type=file] { font: inherit; max-width: 100%; }
   white-space: pre-wrap;
   word-wrap: break-word;
   font-size: 0.93rem;
+  /* A column so the markup's own line breaks between photo, text and time are not shown. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
+.bubble .meta { align-self: stretch; white-space: normal; }
 .bubble.out { align-self: flex-start; }
 .bubble.in { align-self: flex-end; background: #d9fdd3; }
 @media (prefers-color-scheme: dark) {

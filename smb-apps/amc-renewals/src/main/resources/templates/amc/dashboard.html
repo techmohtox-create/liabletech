@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Dashboard', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Maintenance contracts</h1>
+      <p class="sub">Every AMC gets its renewal reminders and booking link on time. What came in, and what is about to slip.</p>
+    </div>
+    <div class="actions">
+      <a class="btn" th:href="@{/customers}">Add a customer</a>
+      <a class="btn primary" th:href="@{/contracts}">Renewals due</a>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <a class="kpi" th:href="@{/contracts(show='DUE')}" th:classappend="${metrics.dueCount > 0} ? 'warn'">
+      <div class="label">Due in the next 30 days</div>
+      <div class="value" th:text="${metrics.dueCount}">0</div>
+      <div class="note" th:text="${@fmt.rupees0(metrics.dueValue) + ' to renew'}">₹</div>
+    </a>
+    <a class="kpi" th:href="@{/contracts(show='LAPSED')}" th:classappend="${metrics.lapsedCount > 0} ? 'bad'">
+      <div class="label">Lapsed, not renewed</div>
+      <div class="value" th:text="${metrics.lapsedCount}">0</div>
+      <div class="note" th:text="${@fmt.rupees0(metrics.lapsedValue) + ' from the last 90 days'}">₹</div>
+    </a>
+    <a class="kpi ok" th:href="@{/contracts(show='RENEWED')}">
+      <div class="label">Renewed this month</div>
+      <div class="value" th:text="${metrics.renewedThisMonth}">0</div>
+      <div class="note" th:text="${@fmt.rupees0(metrics.renewedValue) + ' booked'}">₹</div>
+    </a>
+    <div class="kpi">
+      <div class="label">Renewal rate</div>
+      <div class="value" th:text="${metrics.renewalRate() != null ? @fmt.percent(metrics.renewalRate()) : '–'}">%</div>
+      <div class="note">of contracts that ended in the last 90 days</div>
+    </div>
+    <a class="kpi" th:href="@{/contracts(show='IN_FORCE')}">
+      <div class="label">Contracts in force</div>
+      <div class="value" th:text="${metrics.activeCount}">0</div>
+      <div class="note" th:text="${@fmt.rupees0(metrics.activeValue) + ' a year'}">₹</div>
+    </a>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card flush">
+        <div class="card-head"><h2>Due for renewal</h2><a th:href="@{/contracts}">All</a></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Customer</th><th>Appliance and plan</th><th>Ends</th><th>Reminders</th></tr></thead>
+            <tbody>
+            <tr th:each="c : ${due}" class="row-link" th:attr="data-href=@{/contracts/{id}(id=${c.id})}">
+              <td><a th:href="@{/contracts/{id}(id=${c.id})}" th:text="${c.customerName != null ? c.customerName : @fmt.phone(c.phone)}">name</a><br>
+                <small th:text="${@fmt.phone(c.phone)}">phone</small></td>
+              <td><span th:text="${c.appliance()}">appliance</span><br><small th:text="${c.planName + ' · ' + @fmt.rupees0(c.price)}">plan</small></td>
+              <td class="nowrap"><span th:text="${@fmt.shortDate(c.endsOn)}">date</span><br>
+                <small th:classappend="${c.endsOn.isBefore(today)} ? 'err'" th:text="${@fmt.relativeDays(c.endsOn)}">in</small></td>
+              <td>
+                <span th:if="${c.openRequests > 0}" class="badge ok">asked to renew</span>
+                <span th:if="${c.optedOut}" class="badge">opted out</span>
+                <span th:if="${c.openRequests == 0 and !c.optedOut}" th:text="${c.remindersSent == 0 ? 'none yet' : @fmt.plural(c.remindersSent, 'reminder', 'reminders') + ' sent'}">n</span>
+              </td>
+            </tr>
+            <tr th:if="${due.isEmpty()}"><td colspan="4" class="empty">Nothing ends in the next 30 days.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card flush" th:if="${!labels.isEmpty()}">
+        <div class="card-head"><h2>Label photos to finish</h2><a th:href="@{/labels}">All</a></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="s : ${labels}" class="row-link" th:attr="data-href=@{/labels/{id}(id=${s.id})}">
+              <td style="width:64px"><img class="thumb" th:src="@{/files/{id}(id=${s.fileId})}" alt="Label"></td>
+              <td><a th:href="@{/labels/{id}(id=${s.id})}" th:text="${s.brand != null ? s.brand + (s.model != null ? ' ' + s.model : '') : 'Label photo'}">label</a><br>
+                <small th:text="${(s.technicianName != null ? s.technicianName + ' · ' : '') + @fmt.ago(s.createdAt)}">who</small></td>
+              <td>
+                <span th:if="${s.customerPhone == null}" class="badge warn">which customer?</span>
+                <span th:if="${s.readingStatus == 'MANUAL'}" class="badge warn">type it in</span>
+                <span th:if="${s.amcSold}" class="badge accent">AMC sold</span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card flush">
+        <div class="card-head"><h2>New requests</h2><a th:href="@{/requests}">All</a></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="r : ${newRequests}" class="row-link" th:attr="data-href=@{/requests}">
+              <td><span class="badge" th:classappend="${r.kind == 'RENEWAL'} ? 'ok' : (${r.kind == 'REPAIR'} ? 'warn' : 'info')"
+                        th:text="${r.kind == 'RENEWAL' ? 'renewal' : (r.kind == 'REPAIR' ? 'new enquiry' : 'service visit')}">kind</span></td>
+              <td><a th:href="@{/customers/{id}(id=${r.customerId})}" th:text="${r.customerName != null ? r.customerName : @fmt.phone(r.phone)}">name</a><br>
+                <small th:text="${r.appliance() != null ? r.appliance() : (r.note != null ? r.note : '')}">what</small></td>
+              <td class="right"><small th:text="${@fmt.ago(r.createdAt)}">when</small></td>
+            </tr>
+            <tr th:if="${newRequests.isEmpty()}"><td colspan="3" class="empty">No new requests.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card flush">
+        <div class="card-head"><h2>Visits in the next 7 days</h2></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="r : ${visits}">
+              <td class="nowrap"><strong th:text="${@fmt.shortDate(r.scheduledOn)}">date</strong><br>
+                <small th:text="${r.preferredSlot != null ? r.preferredSlot : @fmt.relativeDays(r.scheduledOn)}">slot</small></td>
+              <td><a th:href="@{/customers/{id}(id=${r.customerId})}" th:text="${r.customerName != null ? r.customerName : @fmt.phone(r.phone)}">name</a><br>
+                <small th:text="${(r.area != null ? r.area + ' · ' : '') + (r.appliance() != null ? r.appliance() : 'visit')}">where</small></td>
+              <td><small th:text="${r.technicianName != null ? r.technicianName : 'no technician yet'}">tech</small></td>
+            </tr>
+            <tr th:if="${visits.isEmpty()}"><td colspan="3" class="empty">No visits booked this week.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Reminders</h2>
+        <p><strong th:text="${@fmt.plural(remindersThisMonth, 'reminder', 'reminders')}">n</strong> sent this month. They go out every morning at 10; customers can renew, book a visit or stop them from the link.</p>
+        <a th:href="@{/setup}">Change the schedule</a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
