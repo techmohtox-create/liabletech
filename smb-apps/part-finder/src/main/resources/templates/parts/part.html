@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${part != null ? part.describe() : 'Add a part'}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/parts}">Stock</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${part != null ? part.describe() : 'Add a part'}">Part</h1>
+      <p class="sub" th:if="${part != null}" th:text="${part.partNumber + ' · ' + part.stock + ' in stock'}">n</p>
+    </div>
+    <form th:if="${part != null}" th:action="@{/parts/{id}/remove(id=${part.id})}" method="post" class="inline-form" data-confirm="Remove this part from the stock list?">
+      <button type="submit" class="btn small danger">Remove</button>
+    </form>
+  </div>
+
+  <form th:action="@{${part != null ? '/parts/' + part.id : '/parts'}}" method="post" class="card stack">
+    <div class="form-grid">
+      <div class="field"><label for="partNumber">Part number</label><input type="text" id="partNumber" name="partNumber" class="mono" required th:value="${part?.partNumber}"></div>
+      <div class="field wide"><label for="name">Name</label><input type="text" id="name" name="name" required th:value="${part?.name}" placeholder="Front brake pad set"></div>
+      <div class="field"><label for="category">Type</label>
+        <select id="category" name="category"><option th:each="t : ${types}" th:value="${t.name()}" th:text="${t.label()}" th:selected="${part != null and part.category == t.name()}">t</option></select></div>
+      <div class="field"><label for="brand">Brand</label><input type="text" id="brand" name="brand" th:value="${part?.brand}"></div>
+      <div class="field"><label for="price">Price to mechanics (₹)</label><input type="number" min="1" step="0.01" id="price" name="price" required th:value="${part?.price}"></div>
+      <div class="field"><label for="mrp">MRP (₹)</label><input type="number" min="0" step="0.01" id="mrp" name="mrp" th:value="${part?.mrp}"></div>
+      <div class="field"><label for="stock">In stock</label><input type="number" min="0" id="stock" name="stock" th:value="${part != null ? part.stock : 0}"></div>
+      <div class="field"><label for="rack">Rack</label><input type="text" id="rack" name="rack" th:value="${part?.rack}" placeholder="B3"></div>
+      <div class="field wide"><label for="fits">Fits</label><input type="text" id="fits" name="fits" th:value="${fits}" placeholder="Swift 2018-2024; Dzire 2017-2024">
+        <span class="hint">Vehicles separated by semicolons, with years if they matter. Enquiries for these vehicles find this part.</span></div>
+      <div class="field wide"><label for="altNumbers">Numbers it replaces</label><input type="text" id="altNumbers" name="altNumbers" class="mono" th:value="${part?.altNumbers}">
+        <span class="hint">The maker's number and other brands' numbers, separated by commas: a photo showing any of them finds this part.</span></div>
+    </div>
+    <div><button type="submit" class="btn primary" th:text="${part != null ? 'Save' : 'Add part'}">Save</button></div>
+  </form>
+</div>
+</body>
+</html>

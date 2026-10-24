@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Reports', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Reports</h1>
+      <p class="sub" th:text="${'The last ' + days + ' days: how fast mechanics hear back, what they book, and what they asked for that you did not have.'}">sub</p>
+    </div>
+    <div class="chips">
+      <a class="chip" th:each="p : ${periods}" th:href="@{/reports(days=${p})}" th:classappend="${p == days} ? 'active'" th:text="${p + ' days'}">7 days</a>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Enquiries</div>
+      <div class="value" th:text="${stats.enquiries}">0</div>
+      <div class="note" th:text="${stats.answered + ' answered'}">n</div>
+    </div>
+    <div class="kpi" th:classappend="${stats.medianSeconds != null and stats.medianSeconds > fastSeconds} ? 'bad' : (${stats.medianSeconds != null} ? 'ok')">
+      <div class="label">Typical answer time</div>
+      <div class="value" th:text="${stats.medianSeconds != null ? @fmt.duration(stats.medianSeconds) : '–'}">–</div>
+      <div class="note" th:text="${stats.fastPercent != null ? @fmt.percent(stats.fastPercent) + ' within 2 minutes' : 'nothing answered yet'}">n</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Quoted automatically</div>
+      <div class="value" th:text="${stats.autoQuoted}">0</div>
+      <div class="note">sure matches, answered in seconds</div>
+    </div>
+    <div class="kpi ok">
+      <div class="label">Booked</div>
+      <div class="value" th:text="${stats.booked}">0</div>
+      <div class="note" th:text="${@fmt.rupees0(stats.bookedValue) + (stats.conversion() != null ? ' · ' + @fmt.percent(stats.conversion()) + ' of enquiries' : '')}">₹</div>
+    </div>
+    <div class="kpi" th:classappend="${stats.missed > 0} ? 'warn'">
+      <div class="label">Missed</div>
+      <div class="value" th:text="${stats.missed}">0</div>
+      <div class="note">asked for, not in stock</div>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="card">
+      <h2>Enquiries a day</h2>
+      <div class="bars">
+        <div class="bar-row" th:each="d : ${perDay}">
+          <span th:text="${@fmt.shortDate(d.day)}">day</span>
+          <span class="bar-track"><span class="bar-fill" th:style="${'width:' + (busiest == 0 ? 0 : d.enquiries * 100 / busiest) + '%'}"></span></span>
+          <span class="amount" th:text="${d.enquiries + (d.bookings > 0 ? ' · ' + d.bookings + ' booked' : '')}">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card flush">
+        <div class="card-head"><h2>Asked for, not in stock</h2></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Part</th><th>Vehicle</th><th class="num">Times</th><th>Last</th></tr></thead>
+            <tbody>
+            <tr th:each="m : ${missed}">
+              <td><strong th:text="${m.part}">part</strong><br><small class="muted" th:if="${m.example != null}" th:text="${'“' + #strings.abbreviate(m.example, 60) + '”'}">example</small></td>
+              <td th:text="${#strings.isEmpty(m.vehicle) ? '–' : m.vehicle}">vehicle</td>
+              <td class="num" th:text="${m.times}">n</td>
+              <td><small th:text="${@fmt.ago(m.lastAsked)}">when</small></td>
+            </tr>
+            <tr th:if="${missed.isEmpty()}"><td colspan="4" class="empty">Nothing missed in this period.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted" style="padding: 0 1rem 1rem" th:if="${!missed.isEmpty()}">Parts asked for again and again are worth keeping in stock.</p>
+      </div>
+
+      <div class="card flush">
+        <div class="card-head"><h2>Booked most</h2></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="s : ${sold}">
+              <td th:text="${s.description}">part</td>
+              <td class="num" th:text="${s.bookings + (s.bookings == 1 ? ' booking' : ' bookings')}">n</td>
+              <td class="num" th:text="${@fmt.rupees0(s.bookedValue)}">₹</td>
+            </tr>
+            <tr th:if="${sold.isEmpty()}"><td class="empty">No bookings in this period.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

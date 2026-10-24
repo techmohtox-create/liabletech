@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${'Enquiry from ' + mechanic.displayName()}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/inbox}">Counter</a> / <a th:href="@{/mechanics/{id}(id=${mechanic.id})}" th:text="${mechanic.displayName()}">m</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${#strings.isEmpty(found.describe()) ? 'Enquiry' : found.describe()}">Enquiry</h1>
+      <p class="sub" th:text="${(enquiry.kind == 'PHOTO' ? 'Photo' : (enquiry.kind == 'VOICE' ? 'Voice note' : 'Message')) + ' from ' + mechanic.displayName() + ' · ' + @fmt.phone(mechanic.phone) + ' · ' + @fmt.dateTime(enquiry.receivedAt)}">from</p>
+    </div>
+    <div class="actions">
+      <span class="badge" th:classappend="${enquiry.status == 'NEW'} ? 'warn' : (${enquiry.status == 'BOOKED'} ? 'ok' : (${enquiry.status == 'NOT_AVAILABLE'} ? 'bad' : 'info'))"
+            th:text="${enquiry.status == 'NEW' ? 'waiting' : (enquiry.status == 'NOT_AVAILABLE' ? 'not in stock' : @fmt.label(enquiry.status))}">s</span>
+      <span class="badge" th:if="${enquiry.responseSeconds() != null}"
+            th:text="${(enquiry.repliedBy == 'AUTO' ? 'auto-answered in ' : 'answered in ') + @fmt.duration(enquiry.responseSeconds())}">t</span>
+      <span class="badge warn" th:if="${enquiry.responseSeconds() == null and enquiry.status == 'NEW'}">waiting
+        <span th:attr="data-since=${enquiry.receivedIso()}" th:text="${@fmt.dateTime(enquiry.receivedAt)}">t</span></span>
+      <form th:if="${enquiry.open()}" th:action="@{/enquiries/{id}/close(id=${enquiry.id})}" method="post" class="inline-form">
+        <input type="hidden" name="back" th:value="${'/enquiries/' + enquiry.id}">
+        <button type="submit" class="btn small">Close</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="callout info" th:if="${enquiry.readingNote != null}" th:text="${enquiry.readingNote}">note</div>
+  <div class="callout ok" th:if="${booking != null}">
+    Booked: <strong th:text="${booking.description + (booking.quantity > 1 ? ' × ' + booking.quantity : '')}">part</strong>,
+    <span th:text="${@fmt.rupees(booking.total()) + ' · ' + @fmt.label(booking.status)}"></span>
+    · <a th:href="@{/bookings}">Bookings</a>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card media-preview">
+        <a th:if="${file != null and file.image}" th:href="@{/files/{id}(id=${file.id})}" target="_blank">
+          <img th:src="@{/files/{id}(id=${file.id})}" alt="Photo from the mechanic" style="max-height: 420px"></a>
+        <audio th:if="${file != null and file.audio}" controls th:src="@{/files/{id}(id=${file.id})}"></audio>
+        <blockquote th:if="${enquiry.transcript != null}" th:text="${'🎤 ' + enquiry.transcript}" style="margin-top: 0.6rem">transcript</blockquote>
+        <blockquote th:if="${enquiry.text != null}" th:text="${enquiry.text}" style="margin-top: 0.6rem">text</blockquote>
+      </div>
+
+      <form class="card stack" th:action="@{/enquiries/{id}/identify(id=${enquiry.id})}" method="post">
+        <h2>What they asked for</h2>
+        <p class="muted" th:text="${enquiry.readingStatus == 'READ' ? 'Read by the AI. Correct anything that is wrong; the matching parts follow.' : (enquiry.readingStatus == 'PARSED' ? 'Understood from the words. Correct anything that is wrong.' : (enquiry.readingStatus == 'EDITED' ? 'Corrected at the counter.' : 'Fill in what you can tell from the photo or voice note.'))}">how</p>
+        <div class="form-grid">
+          <div class="field"><label for="partType">Part</label>
+            <select id="partType" name="partType"><option value="">Not sure</option>
+              <option th:each="t : ${types}" th:value="${t.name()}" th:text="${t.label()}" th:selected="${found.partType == t}">t</option></select></div>
+          <div class="field"><label for="vehicleModel">Vehicle</label>
+            <input type="text" id="vehicleModel" name="vehicleModel" list="models" th:value="${found.vehicleModel}" placeholder="Swift">
+            <datalist id="models"><option th:each="v : ${models}" th:value="${v.model}" th:text="${v.display()}"></option></datalist></div>
+          <div class="field"><label for="vehicleYear">Year</label><input type="number" min="1990" max="2040" id="vehicleYear" name="vehicleYear" th:value="${found.vehicleYear}"></div>
+          <div class="field"><label for="position">Side</label>
+            <select id="position" name="position"><option value="">–</option>
+              <option th:each="p : ${positions}" th:value="${p}" th:text="${#strings.capitalize(#strings.toLowerCase(p))}" th:selected="${found.position == p}">p</option></select></div>
+          <div class="field"><label for="quantity">Quantity</label><input type="number" min="1" max="99" id="quantity" name="quantity" th:value="${found.quantity}"></div>
+          <div class="field"><label for="partNumbers">Numbers on the part</label><input type="text" id="partNumbers" name="partNumbers" class="mono" th:value="${#strings.listJoin(found.partNumbers, ', ')}"></div>
+          <div class="field wide"><label for="partName">Description</label><input type="text" id="partName" name="partName" th:value="${found.partName}"></div>
+        </div>
+        <div><button type="submit" class="btn">Save and match again</button></div>
+      </form>
+
+      <div class="card" th:if="${!thread.isEmpty()}">
+        <h2>WhatsApp with <span th:text="${mechanic.displayName()}">m</span></h2>
+        <div class="thread" style="max-height: 460px">
+          <div class="bubble" th:each="b : ${thread}" th:classappend="${b.outgoing} ? 'out' : 'in'">
+            <a th:if="${b.fileId != null and b.type == 'image'}" th:href="@{/files/{id}(id=${b.fileId})}" target="_blank"><img th:src="@{/files/{id}(id=${b.fileId})}" alt="Photo"></a>
+            <audio th:if="${b.fileId != null and b.type == 'audio'}" controls preload="none" th:src="@{/files/{id}(id=${b.fileId})}"></audio>
+            <span th:if="${b.text != null}" th:text="${b.text}">text</span>
+            <span class="meta" th:text="${@fmt.dateTime(b.at)}">time</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <form class="card stack" th:if="${enquiry.status != 'BOOKED'}" th:action="@{/enquiries/{id}/quote(id=${enquiry.id})}" method="post">
+        <input type="hidden" name="back" th:value="${'/enquiries/' + enquiry.id}">
+        <h2 th:text="${offered.isEmpty() ? 'Quote' : 'Quote again'}">Quote</h2>
+        <p class="muted" th:if="${!offered.isEmpty()}" th:text="${'Sent: ' + #strings.listJoin(offered.![optionNo + ') ' + description + ' ' + @fmt.rupees0(price)], ' · ')}">sent</p>
+        <table class="quote-pick" th:if="${!candidates.isEmpty() or !searched.isEmpty()}">
+          <thead><tr><th></th><th>Part</th><th>Stock</th><th>Price</th></tr></thead>
+          <tbody>
+          <tr th:each="m, stat : ${candidates}">
+            <td><input type="checkbox" name="partId" th:value="${m.part.id}" th:id="${'c-' + m.part.id}" th:checked="${stat.first and m.part.inStock() and offered.isEmpty()}"></td>
+            <td><label th:for="${'c-' + m.part.id}"><strong th:text="${m.part.describe()}">p</strong></label><br>
+              <small class="muted" th:text="${m.part.partNumber + ' · ' + #strings.listJoin(m.reasons, ', ')}">why</small><br>
+              <small class="muted" th:if="${!#strings.isEmpty(m.fits)}" th:text="${'Fits ' + m.fits}">fits</small></td>
+            <td class="nowrap"><span class="badge" th:classappend="${m.part.inStock()} ? 'ok' : 'bad'" th:text="${m.part.stock + (m.part.rack != null ? ' · ' + m.part.rack : '')}">n</span></td>
+            <td><input type="number" min="1" step="1" th:name="${'price_' + m.part.id}" th:placeholder="${@fmt.num(m.part.price)}" aria-label="Price"></td>
+          </tr>
+          <tr th:each="p : ${searched}">
+            <td><input type="checkbox" name="partId" th:value="${p.id}" th:id="${'s-' + p.id}"></td>
+            <td><label th:for="${'s-' + p.id}"><strong th:text="${p.describe()}">p</strong></label><br><small class="muted" th:text="${p.partNumber + ' · from search'}">n</small></td>
+            <td class="nowrap"><span class="badge" th:classappend="${p.inStock()} ? 'ok' : 'bad'" th:text="${p.stock}">n</span></td>
+            <td><input type="number" min="1" step="1" th:name="${'price_' + p.id}" th:placeholder="${@fmt.num(p.price)}" aria-label="Price"></td>
+          </tr>
+          </tbody>
+        </table>
+        <p class="muted" th:if="${candidates.isEmpty() and searched.isEmpty()}">No part in the stock list matches. Search below, or type one in.</p>
+        <div class="form-grid">
+          <div class="field wide"><label for="customDescription">Or a part not in the list</label><input type="text" id="customDescription" name="customDescription" placeholder="e.g. Clutch plate (from the godown)"></div>
+          <div class="field"><label for="customPrice">Price (₹)</label><input type="number" min="1" step="1" id="customPrice" name="customPrice"></div>
+        </div>
+        <div><button type="submit" class="btn primary">Send quote on WhatsApp</button></div>
+      </form>
+
+      <form class="card" th:if="${enquiry.status != 'BOOKED'}" th:action="@{/enquiries/{id}(id=${enquiry.id})}" method="get">
+        <h2>Search stock</h2>
+        <div class="row-form"><input type="search" name="q" th:value="${q}" placeholder="Number, name or vehicle" aria-label="Search stock"><button type="submit" class="btn">Search</button></div>
+      </form>
+
+      <form class="card stack" th:action="@{/enquiries/{id}/message(id=${enquiry.id})}" method="post">
+        <input type="hidden" name="back" th:value="${'/enquiries/' + enquiry.id}">
+        <h2>Ask or reply</h2>
+        <div class="field"><label for="question">Quick question</label>
+          <select id="question" name="question"><option th:if="${found.question != null}" th:value="${found.question}" th:text="${found.question}">q</option>
+            <option th:each="q2 : ${questions}" th:value="${q2}" th:text="${q2}">q</option></select></div>
+        <div class="field"><label for="text">Or your own words</label><textarea id="text" name="text" rows="2"></textarea></div>
+        <div><button type="submit" class="btn">Send</button></div>
+      </form>
+
+      <form class="card stack" th:if="${enquiry.open()}" th:action="@{/enquiries/{id}/unavailable(id=${enquiry.id})}" method="post">
+        <input type="hidden" name="back" th:value="${'/enquiries/' + enquiry.id}">
+        <h2>Not in stock</h2>
+        <div class="field"><label for="note">Add a line (optional)</label><input type="text" id="note" name="note" placeholder="We can get it by tomorrow 11 am"></div>
+        <div><button type="submit" class="btn">Tell the mechanic</button></div>
+        <p class="hint">It counts in the missed-demand report, so you can see what to stock.</p>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>

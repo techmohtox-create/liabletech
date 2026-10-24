@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Stock', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Stock</h1>
+      <p class="sub" th:text="${total + (total == 1 ? ' part' : ' parts') + ' in the list. What each fits is how enquiries find them.'}">count</p>
+    </div>
+    <div class="actions">
+      <a class="btn" th:href="@{/parts/export.csv}">Download CSV</a>
+      <a class="btn primary" th:href="@{/parts/new}">Add a part</a>
+    </div>
+  </div>
+
+  <div class="callout warn" th:if="${problems != null and !problems.isEmpty()}">
+    <strong>Lines not imported:</strong>
+    <ul><li th:each="p : ${problems}" th:text="${p}">problem</li></ul>
+  </div>
+
+  <form th:action="@{/parts}" method="get" class="filters">
+    <input type="search" name="q" th:value="${q}" placeholder="Number, name, brand or vehicle" aria-label="Search">
+    <select name="category" aria-label="Part type" data-submit-on-change>
+      <option value="">All types</option>
+      <option th:each="t : ${types}" th:value="${t.name()}" th:text="${t.label()}" th:selected="${category == t.name()}">t</option>
+    </select>
+    <select name="show" aria-label="Stock" data-submit-on-change>
+      <option value="all" th:selected="${show == 'all'}">Any stock</option>
+      <option value="low" th:selected="${show == 'low'}">2 or fewer</option>
+      <option value="out" th:selected="${show == 'out'}">Out of stock</option>
+    </select>
+    <button type="submit" class="btn">Search</button>
+  </form>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Part</th><th>Fits</th><th class="num">Price</th><th>Rack</th><th>Stock</th></tr></thead>
+        <tbody>
+        <tr th:each="p : ${parts}">
+          <td><a th:href="@{/parts/{id}(id=${p.id})}" th:text="${p.describe()}">part</a><br>
+            <small class="mono" th:text="${p.partNumber + (p.altNumbers != null ? ' · ' + p.altNumbers : '')}">number</small></td>
+          <td><small th:text="${fitments.containsKey(p.id) ? #strings.listJoin(fitments.get(p.id).![describe()], ', ') : '–'}">fits</small></td>
+          <td class="num"><span th:text="${@fmt.rupees0(p.price)}">₹</span><br><small class="muted" th:if="${p.mrp != null}" th:text="${'MRP ' + @fmt.rupees0(p.mrp)}">mrp</small></td>
+          <td th:text="${p.rack != null ? p.rack : '–'}">rack</td>
+          <td>
+            <form th:action="@{/parts/{id}/stock(id=${p.id})}" method="post" class="row-form">
+              <input type="hidden" name="back" th:value="${'/parts' + (q != null ? '?q=' + q : '')}">
+              <input type="number" min="0" name="stock" th:value="${p.stock}" aria-label="Stock" style="width: 5rem" th:classappend="${p.stock == 0} ? 'invalid'">
+              <button type="submit" class="btn small">Set</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:if="${parts.isEmpty()}"><td colspan="5" class="empty">No parts found.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <form th:action="@{/parts/import}" method="post" enctype="multipart/form-data" class="card stack">
+    <h2>Import a stock list</h2>
+    <p class="muted">A CSV with headings in the first row. Columns are found by name; a part number already in the list updates that part.
+      <span class="mono">part_number, name, category, brand, price, mrp, stock, rack, fits, alt_numbers</span></p>
+    <p class="muted">“fits” lists vehicles separated by semicolons, with years if they matter: <span class="mono">Swift 2018-2024; Dzire 2017-2024; Bolero (diesel)</span>.
+      Headings from billing software such as “Item Name”, “Qty” and “Rate” are understood too.</p>
+    <div class="row-form"><input type="file" name="file" accept=".csv,text/csv" required aria-label="CSV file"><button type="submit" class="btn">Import</button></div>
+  </form>
+</div>
+</body>
+</html>

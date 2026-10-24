@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${mechanic.displayName()}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/mechanics}">Mechanics</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${mechanic.displayName()}">Mechanic</h1>
+      <p class="sub" th:text="${@fmt.phone(mechanic.phone) + (mechanic.area != null ? ' · ' + mechanic.area : '')}">phone</p>
+    </div>
+    <form th:action="@{/mechanics/{id}/block(id=${mechanic.id})}" method="post" class="inline-form">
+      <input type="hidden" name="blocked" th:value="${!mechanic.blocked}">
+      <span th:if="${mechanic.blocked}" class="badge">blocked: messages are ignored</span>
+      <button type="submit" class="btn small" th:text="${mechanic.blocked ? 'Unblock' : 'Block'}">Block</button>
+    </form>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card flush">
+        <div class="card-head"><h2>Enquiries</h2></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="e : ${enquiries}" class="row-link" th:attr="data-href=@{/enquiries/{id}(id=${e.id})}">
+              <td><a th:href="@{/enquiries/{id}(id=${e.id})}" th:text="${#strings.isEmpty(e.describe()) ? (e.text != null ? e.text : (e.kind == 'VOICE' ? 'Voice note' : 'Photo')) : e.describe()}">what</a></td>
+              <td><span class="badge" th:classappend="${e.status == 'BOOKED'} ? 'ok' : (${e.status == 'NOT_AVAILABLE'} ? 'bad' : (${e.status == 'NEW'} ? 'warn' : ''))"
+                        th:text="${e.status == 'NOT_AVAILABLE' ? 'not in stock' : (e.status == 'NEW' ? 'waiting' : @fmt.label(e.status))}">s</span></td>
+              <td><small th:text="${e.responseSeconds() != null ? 'answered in ' + @fmt.duration(e.responseSeconds()) : ''}">t</small></td>
+              <td class="right"><small th:text="${@fmt.dateTime(e.receivedAt)}">when</small></td>
+            </tr>
+            <tr th:if="${enquiries.isEmpty()}"><td class="empty">No enquiries yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card flush">
+        <div class="card-head"><h2>Bookings</h2></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="b : ${bookings}">
+              <td th:text="${b.description + (b.quantity > 1 ? ' × ' + b.quantity : '')}">part</td>
+              <td class="num" th:text="${@fmt.rupees0(b.total())}">₹</td>
+              <td><span class="badge" th:classappend="${b.status == 'HANDED_OVER'} ? 'ok' : (${b.status == 'BOOKED'} ? 'info' : '')" th:text="${@fmt.label(b.status)}">s</span>
+                <small class="muted" th:if="${b.paymentMode != null}" th:text="${@fmt.label(b.paymentMode)}">mode</small></td>
+              <td class="right"><small th:text="${@fmt.dateTime(b.createdAt)}">when</small></td>
+            </tr>
+            <tr th:if="${bookings.isEmpty()}"><td class="empty">No bookings yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <form th:action="@{/mechanics/{id}(id=${mechanic.id})}" method="post" class="card stack">
+      <h2>Details</h2>
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" th:value="${mechanic.name}"></div>
+      <div class="field"><label for="garage">Garage</label><input type="text" id="garage" name="garage" th:value="${mechanic.garage}"></div>
+      <div class="field"><label for="area">Area</label><input type="text" id="area" name="area" th:value="${mechanic.area}"></div>
+      <div class="field"><label for="notes">Notes</label><textarea id="notes" name="notes" rows="3" th:text="${mechanic.notes}"></textarea></div>
+      <div><button type="submit" class="btn">Save</button></div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Dashboard', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Today at the counter</h1>
+      <p class="sub">Photos, voice notes and messages from mechanics, answered with price and stock.</p>
+    </div>
+    <div class="actions">
+      <a class="btn primary" th:href="@{/inbox}" th:text="${today.waiting > 0 ? 'Answer ' + today.waiting + (today.waiting == 1 ? ' enquiry' : ' enquiries') : 'Open the counter'}">Counter</a>
+    </div>
+  </div>
+
+  <div class="callout info" th:if="${partCount == 0}">
+    Your stock list is empty. <a th:href="@{/parts}">Import it from a CSV</a> (most billing software exports one) so enquiries can be matched.
+  </div>
+
+  <div class="kpis">
+    <a class="kpi" th:href="@{/inbox}" th:classappend="${today.waiting > 0} ? 'warn'">
+      <div class="label">Waiting now</div>
+      <div class="value" th:text="${today.waiting}">0</div>
+      <div class="note">enquiries without an answer</div>
+    </a>
+    <div class="kpi" th:classappend="${today.medianSeconds != null and today.medianSeconds > 120} ? 'bad' : (${today.medianSeconds != null} ? 'ok')">
+      <div class="label">Typical answer time today</div>
+      <div class="value" th:text="${today.medianSeconds != null ? @fmt.duration(today.medianSeconds) : '–'}">–</div>
+      <div class="note" th:text="${today.fastPercent != null ? @fmt.percent(today.fastPercent) + ' within 2 minutes' : 'no answers yet today'}">n</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Enquiries today</div>
+      <div class="value" th:text="${today.enquiries}">0</div>
+      <div class="note" th:text="${today.autoQuoted > 0 ? today.autoQuoted + ' quoted automatically' : (pro ? 'none automatic yet' : 'automatic quotes are on Pro')}">n</div>
+    </div>
+    <a class="kpi ok" th:href="@{/bookings}">
+      <div class="label">Booked today</div>
+      <div class="value" th:text="${today.booked}">0</div>
+      <div class="note" th:text="${@fmt.rupees0(today.bookedValue)}">₹</div>
+    </a>
+    <a class="kpi" th:href="@{/reports(days=7)}">
+      <div class="label">Last 7 days</div>
+      <div class="value" th:text="${week.conversion() != null ? @fmt.percent(week.conversion()) : '–'}">%</div>
+      <div class="note" th:text="${week.enquiries + ' enquiries, ' + week.booked + ' booked'}">n</div>
+    </a>
+  </div>
+
+  <div class="split">
+    <div>
+      <div class="card flush">
+        <div class="card-head"><h2>Waiting for an answer</h2><a th:href="@{/inbox}">Counter</a></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="e : ${waiting}" class="row-link" th:attr="data-href=@{/enquiries/{id}(id=${e.id})}">
+              <td><a th:href="@{/enquiries/{id}(id=${e.id})}" th:text="${e.mechanicDisplay()}">m</a><br>
+                <small th:text="${(e.kind == 'PHOTO' ? '📷 ' : (e.kind == 'VOICE' ? '🎤 ' : '')) + (#strings.isEmpty(e.describe()) ? (e.text != null ? e.text : (e.kind == 'VOICE' ? 'voice note' : 'photo')) : e.describe())}">what</small></td>
+              <td class="right nowrap"><span class="badge warn"><span th:attr="data-since=${e.receivedIso()}" th:text="${@fmt.dateTime(e.receivedAt)}">t</span></span></td>
+            </tr>
+            <tr th:if="${waiting.isEmpty()}"><td class="empty">Nothing waiting.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card flush">
+        <div class="card-head"><h2>Booked, to hand over</h2><a th:href="@{/bookings}">Bookings</a></div>
+        <div class="table-wrap">
+          <table>
+            <tbody>
+            <tr th:each="b : ${toHandOver}">
+              <td th:text="${b.mechanicDisplay()}">m</td>
+              <td><span th:text="${b.description + (b.quantity > 1 ? ' × ' + b.quantity : '')}">part</span><br>
+                <small class="muted" th:text="${(b.rack != null ? 'rack ' + b.rack + ' · ' : '') + @fmt.ago(b.createdAt)}">rack</small></td>
+              <td class="num" th:text="${@fmt.rupees0(b.total())}">₹</td>
+            </tr>
+            <tr th:if="${toHandOver.isEmpty()}"><td class="empty">Nothing waiting to be collected.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head"><h2>Asked for, not in stock</h2><a th:href="@{/reports}">Report</a></div>
+        <table th:if="${!missed.isEmpty()}">
+          <tbody>
+          <tr th:each="m : ${missed}">
+            <td><strong th:text="${m.part}">part</strong> <span class="muted" th:text="${m.vehicle}">vehicle</span></td>
+            <td class="num" th:text="${m.times + (m.times == 1 ? ' time' : ' times')}">n</td>
+          </tr>
+          </tbody>
+        </table>
+        <p class="muted" th:if="${missed.isEmpty()}">Nothing missed this week.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>Running low</h2><a th:href="@{/parts(show='low')}">Stock</a></div>
+        <table th:if="${!low.isEmpty()}">
+          <tbody>
+          <tr th:each="p : ${low}">
+            <td><a th:href="@{/parts/{id}(id=${p.id})}" th:text="${p.describe()}">p</a></td>
+            <td class="num"><span class="badge" th:classappend="${p.stock == 0} ? 'bad' : 'warn'" th:text="${p.stock + ' left'}">n</span></td>
+          </tr>
+          </tbody>
+        </table>
+        <p class="muted" th:if="${low.isEmpty()}">Everything booked lately is in stock.</p>
+      </div>
+
+      <a class="card" th:href="@{/settings}" style="display: block; color: inherit">
+        <h2 th:text="${plan.planName + ' plan'}">Plan</h2>
+        <p class="muted" th:text="${plan.price + '. ' + plan.details[0] + '.'}">price</p>
+      </a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

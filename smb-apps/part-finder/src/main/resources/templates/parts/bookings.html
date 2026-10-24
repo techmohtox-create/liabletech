@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Bookings', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Bookings</h1>
+      <p class="sub">Parts mechanics booked by replying to a quote. They are set aside from stock until collected.</p>
+    </div>
+  </div>
+  <div class="chips" style="margin-bottom: 1rem">
+    <a class="chip" th:href="@{/bookings}" th:classappend="${show == 'open'} ? 'active'">To hand over</a>
+    <a class="chip" th:href="@{/bookings(show='done')}" th:classappend="${show == 'done'} ? 'active'">Done</a>
+  </div>
+  <div class="card flush">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Mechanic</th><th>Part</th><th class="num">Amount</th><th>Booked</th><th></th></tr></thead>
+        <tbody>
+        <tr th:each="b : ${bookings}">
+          <td><a th:href="@{/mechanics/{id}(id=${b.mechanicId})}" th:text="${b.mechanicDisplay()}">m</a><br><small th:text="${@fmt.phone(b.phone)}">p</small></td>
+          <td><a th:if="${b.enquiryId != null}" th:href="@{/enquiries/{id}(id=${b.enquiryId})}" th:text="${b.description + (b.quantity > 1 ? ' × ' + b.quantity : '')}">part</a>
+            <span th:if="${b.enquiryId == null}" th:text="${b.description}">part</span><br>
+            <small class="muted" th:text="${(b.partNumber != null ? b.partNumber : 'typed in') + (b.rack != null ? ' · rack ' + b.rack : '')}">n</small></td>
+          <td class="num" th:text="${@fmt.rupees(b.total())}">₹</td>
+          <td class="nowrap"><span th:text="${@fmt.dateTime(b.createdAt)}">t</span>
+            <br th:if="${b.doneAt != null}"><small th:if="${b.doneAt != null}" th:text="${@fmt.label(b.status) + (b.paymentMode != null ? ', ' + @fmt.label(b.paymentMode) : '') + ' · ' + @fmt.dateTime(b.doneAt)}">done</small></td>
+          <td class="right">
+            <th:block th:if="${b.status == 'BOOKED'}">
+              <form th:action="@{/bookings/{id}/handed-over(id=${b.id})}" method="post" class="row-form" style="justify-content: flex-end">
+                <select name="paymentMode" aria-label="Paid by"><option th:each="m : ${modes}" th:value="${m}" th:text="${@fmt.label(m)}">m</option></select>
+                <button type="submit" class="btn ok small">Handed over</button>
+              </form>
+              <form th:action="@{/bookings/{id}/cancel(id=${b.id})}" method="post" class="inline-form" data-confirm="Cancel this booking and put the part back in stock?">
+                <button type="submit" class="btn small" style="margin-top: 0.3rem">Cancel</button>
+              </form>
+            </th:block>
+          </td>
+        </tr>
+        <tr th:if="${bookings.isEmpty()}"><td colspan="5" class="empty" th:text="${show == 'done' ? 'Nothing handed over yet.' : 'Nothing waiting to be collected.'}">none</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

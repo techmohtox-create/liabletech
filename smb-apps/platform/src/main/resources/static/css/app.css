@@ -444,3 +444,11 @@ footer.foot { text-align: center; color: var(--muted); font-size: 0.82rem; paddi
 @media (max-width: 640px) { .compare { grid-template-columns: 1fr; } }
 details { margin-top: 0.6rem; }
 details summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; }
+
+/* ---------- What was sent: a photo, a voice note or words ---------- */
+
+.media-preview img { display: block; max-width: 100%; max-height: 280px; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; }
+.media-preview audio { width: 100%; max-width: 360px; }
+.media-preview blockquote { margin: 0; padding: 0.6rem 0.8rem; background: var(--soft); border-radius: 8px; white-space: pre-wrap; }
+.quote-pick td { vertical-align: middle; }
+.quote-pick input[type=text], .quote-pick input[type=number] { width: 7.5rem; }

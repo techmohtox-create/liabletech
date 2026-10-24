@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Mechanics', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Mechanics</h1>
+      <p class="sub">Garages that ask on WhatsApp are added the first time they write. Last 30 days shown.</p>
+    </div>
+    <form th:action="@{/mechanics}" method="get" class="filters">
+      <input type="search" name="q" th:value="${q}" placeholder="Name, garage or mobile" aria-label="Search">
+      <button type="submit" class="btn">Search</button>
+    </form>
+  </div>
+
+  <div class="split">
+    <div class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mechanic</th><th class="num">Enquiries</th><th class="num">Booked</th><th>Last asked</th></tr></thead>
+          <tbody>
+          <tr th:each="m : ${mechanics}" class="row-link" th:attr="data-href=@{/mechanics/{id}(id=${m.id})}">
+            <td><a th:href="@{/mechanics/{id}(id=${m.id})}" th:text="${m.displayName()}">m</a><br>
+              <small th:text="${@fmt.phone(m.phone) + (m.area != null ? ' · ' + m.area : '')}">phone</small>
+              <span th:if="${m.blocked}" class="badge">blocked</span></td>
+            <td class="num" th:text="${m.enquiries}">0</td>
+            <td class="num"><span th:text="${m.bookings}">0</span><br><small class="muted" th:text="${@fmt.rupees0(m.bookedValue)}">₹</small></td>
+            <td th:text="${m.lastEnquiry != null ? @fmt.ago(m.lastEnquiry) : '–'}">when</td>
+          </tr>
+          <tr th:if="${mechanics.isEmpty()}"><td colspan="4" class="empty">No mechanics yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <form th:action="@{/mechanics}" method="post" class="card stack">
+      <h2>Add a mechanic</h2>
+      <div class="field"><label for="phone">WhatsApp number</label><input type="tel" id="phone" name="phone" required placeholder="98xxxxxxxx"></div>
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name"></div>
+      <div class="field"><label for="garage">Garage</label><input type="text" id="garage" name="garage"></div>
+      <div class="field"><label for="area">Area</label><input type="text" id="area" name="area"></div>
+      <div><button type="submit" class="btn primary">Add</button></div>
+      <p class="hint">On the shared demo number a mechanic must be added here first; on your own WhatsApp number anyone who writes is added.</p>
+    </form>
+  </div>
+</div>
+</body>
+</html>

@@ -28,7 +28,8 @@
     var every = parseInt(element.getAttribute('data-refresh-every') || '5000', 10);
     var last = element.innerHTML;
     setInterval(function () {
-      if (document.hidden) {
+      // Not while the page is hidden, nor while someone is typing in the part being refreshed.
+      if (document.hidden || element.contains(document.activeElement) && document.activeElement !== document.body) {
         return;
       }
       fetch(url, { headers: { 'X-Requested-With': 'fetch' }, credentials: 'same-origin' })
@@ -130,11 +131,34 @@
     }
   });
 
+  // <span data-since="2026-10-24T10:15:00+05:30"> shows the time elapsed, kept current: "45 s", "3 min 05 s".
+  function elapsed(since) {
+    var seconds = Math.max(0, Math.floor((Date.now() - Date.parse(since)) / 1000));
+    if (seconds < 60) {
+      return seconds + ' s';
+    }
+    var minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      var rest = seconds % 60;
+      return minutes + ' min ' + (rest < 10 ? '0' : '') + rest + ' s';
+    }
+    var hours = Math.floor(minutes / 60);
+    return hours + ' h ' + (minutes % 60) + ' min';
+  }
+  function tick() {
+    document.querySelectorAll('[data-since]').forEach(function (element) {
+      element.textContent = elapsed(element.getAttribute('data-since'));
+    });
+  }
+  setInterval(tick, 1000);
+  document.addEventListener('refreshed', tick);
+
   window.LT = { csrfHeaders: csrfHeaders };
 
   document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[data-refresh-url]').forEach(startRefresh);
     document.querySelectorAll('[data-filter-table]').forEach(startFilter);
     scrollThread();
+    tick();
   });
 })();

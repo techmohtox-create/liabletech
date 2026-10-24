@@ -21,6 +21,7 @@
 		<module>material-tracker</module>
 		<module>export-doc-checker</module>
 		<module>amc-renewals</module>
+		<module>part-finder</module>
 	</modules>
 
 	<properties>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Setup', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Setup</h1>
+      <p class="sub">How the counter answers mechanics.</p>
+    </div>
+  </div>
+
+  <div class="split">
+    <form th:action="@{/setup}" method="post" class="card stack">
+      <h2>Answers</h2>
+      <label class="check"><input type="checkbox" name="acknowledge" value="true" th:checked="${settings.acknowledge}">
+        Reply at once with what was understood (“Got it: Swift front brake pads. Checking stock”), or with the one question that settles it</label>
+      <label class="check"><input type="checkbox" name="autoQuote" value="true" th:checked="${settings.autoQuote}" th:disabled="${!pro}">
+        Quote sure matches straight away, with price, without waiting for the counter</label>
+      <p class="hint" th:if="${!pro}">Automatic quotes and waiting alerts are part of Pro (₹499/month); switch in <a th:href="@{/settings}">Settings</a>.</p>
+      <div class="form-grid">
+        <div class="field"><label for="confidence">Automatic only when at least this sure (%)</label>
+          <input type="number" min="50" max="100" id="confidence" name="confidence" th:value="${settings.autoQuoteConfidence.movePointRight(2).intValue()}"></div>
+        <div class="field"><label for="nudgeMinutes">Alert me on WhatsApp after (minutes waiting)</label>
+          <input type="number" min="0" max="60" id="nudgeMinutes" name="nudgeMinutes" th:value="${settings.nudgeMinutes}">
+          <span class="hint">0 turns the alert off.</span></div>
+        <div class="field"><label for="readyMinutes">Booked parts are ready in (minutes)</label>
+          <input type="number" min="1" max="240" id="readyMinutes" name="readyMinutes" th:value="${settings.readyMinutes}"></div>
+      </div>
+      <p class="hint">A match is “sure” when a number on the part or box matches, or the part type, vehicle and side (or year) all agree with your stock list, and it is in stock.</p>
+      <div><button type="submit" class="btn primary">Save</button></div>
+    </form>
+
+    <div>
+      <div class="card">
+        <h2>What mechanics receive</h2>
+        <h3>When an enquiry arrives</h3>
+        <div class="bubble out" style="max-width: none; margin-bottom: 0.9rem" th:text="${ack}">ack</div>
+        <h3>A quote</h3>
+        <div class="bubble out" style="max-width: none; margin-bottom: 0.9rem" th:text="${quote}">quote</div>
+        <p class="muted">They book by replying 1 or 2, and can reply CANCEL.</p>
+      </div>
+
+      <div class="card">
+        <h2>Reading photos and voice notes</h2>
+        <dl class="facts">
+          <dt>Photos</dt>
+          <dd th:text="${aiOn ? 'Read by the AI: part, vehicle and any numbers on it.' : 'Off: no AI key is set. Photos wait at the counter; typed messages are still understood.'}">ai</dd>
+          <dt>Voice notes</dt>
+          <dd th:text="${voiceOn ? 'Transcribed, then understood like a typed message.' : 'Played at the counter. To transcribe them, set a speech-to-text service (see the README).'}">voice</dd>
+          <dt>WhatsApp</dt>
+          <dd th:text="${ownNumber ? 'Your own business number: anyone who writes is added as a mechanic.' : 'Shared demo number: add mechanics first, or connect your own number in Settings.'}">wa</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
