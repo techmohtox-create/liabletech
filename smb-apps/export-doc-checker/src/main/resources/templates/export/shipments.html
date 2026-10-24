@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Shipments', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Shipments</h1>
+      <p class="sub">One per letter of credit drawing. Send documents on WhatsApp or upload them here.</p>
+    </div>
+  </div>
+
+  <form th:action="@{/shipments}" method="post" class="card filters">
+    <strong>Add a shipment</strong>
+    <input type="text" name="title" placeholder="e.g. Black pepper to Hamburg" aria-label="Name" style="max-width: 320px">
+    <button type="submit" class="btn small primary">Add</button>
+  </form>
+
+  <div class="filters">
+    <div class="chips">
+      <a class="chip" th:href="@{/shipments}" th:classappend="${show != 'all'} ? 'active'">In progress</a>
+      <a class="chip" th:href="@{/shipments(show='all')}" th:classappend="${show == 'all'} ? 'active'">All</a>
+    </div>
+    <input type="search" placeholder="Search" data-filter-table="#shipments">
+  </div>
+
+  <div class="card flush">
+    <div class="table-wrap">
+      <table id="shipments">
+        <thead><tr><th>Shipment</th><th>Buyer</th><th>LC</th><th class="num">Amount</th><th>Expiry</th><th>Status</th></tr></thead>
+        <tbody>
+        <tr th:each="s : ${shipments}" th:attr="data-href=@{/shipments/{id}(id=${s.id})}" class="row-link">
+          <td><a th:href="@{/shipments/{id}(id=${s.id})}" th:text="${s.displayName()}">s</a><br><small class="mono" th:text="${s.reference}">ref</small></td>
+          <td th:text="${s.buyerName != null ? s.buyerName : '–'}">buyer</td>
+          <td class="mono" th:text="${s.lcNumber != null ? s.lcNumber : '–'}">lc</td>
+          <td class="num" th:text="${s.lcAmount != null ? s.currency + ' ' + #numbers.formatDecimal(s.lcAmount, 1, 'COMMA', 2, 'POINT') : '–'}">amt</td>
+          <td th:text="${s.lcExpiry != null ? @fmt.date(s.lcExpiry) : '–'}">exp</td>
+          <td>
+            <span class="badge" th:classappend="${s.status == 'READY' or s.status == 'PAID'} ? 'ok' : (${s.criticalCount > 0} ? 'bad' : (${s.status == 'SUBMITTED'} ? 'info' : 'warn'))"
+                  th:text="${s.criticalCount > 0 and s.active() ? s.criticalCount + (s.criticalCount == 1 ? ' discrepancy' : ' discrepancies') : @fmt.label(s.status)}">status</span>
+          </td>
+        </tr>
+        <tr th:if="${shipments.isEmpty()}"><td colspan="6" class="empty">No shipments yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

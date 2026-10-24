@@ -110,6 +110,23 @@ public class SettingsController {
 		return "redirect:/settings#team";
 	}
 
+	@PostMapping("/settings/plan")
+	public String changePlan(@AuthenticationPrincipal CurrentUser user, @RequestParam String planCode,
+			RedirectAttributes redirect) {
+		if (!user.isOwner()) {
+			throw new NotFoundException("Page");
+		}
+		plans.options()
+			.stream()
+			.filter((option) -> option.code().equals(planCode))
+			.findFirst()
+			.ifPresentOrElse((option) -> {
+				accounts.setPlan(user.accountId(), option.code());
+				redirect.addFlashAttribute("notice", "You are now on the " + option.name() + " plan.");
+			}, () -> redirect.addFlashAttribute("error", "Unknown plan."));
+		return "redirect:/settings";
+	}
+
 	@PostMapping("/settings/team/{userId}/active")
 	public String setActive(@AuthenticationPrincipal CurrentUser user, @PathVariable long userId,
 			@RequestParam boolean active) {
@@ -125,6 +142,7 @@ public class SettingsController {
 		ZoneId zone = clock.getZone();
 		model.addAttribute("account", account);
 		model.addAttribute("plan", plans.summarize(account));
+		model.addAttribute("planOptions", plans.options());
 		model.addAttribute("team", users.forAccount(user.accountId()));
 		model.addAttribute("aiEnabled", ai.enabled());
 		model.addAttribute("aiModel", ai.model());

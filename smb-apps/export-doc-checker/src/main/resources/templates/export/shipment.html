@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${shipment.displayName()}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/shipments}">Shipments</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${shipment.displayName()}">Shipment</h1>
+      <p class="sub">
+        <span class="mono" th:text="${shipment.reference}">EXP</span>
+        <span th:if="${shipment.lcNumber != null}" th:text="${' · LC ' + shipment.lcNumber}"></span>
+        <span th:if="${shipment.buyerName != null}" th:text="${' · ' + shipment.buyerName}"></span>
+        <span th:if="${shipment.issuingBank != null}" th:text="${' · ' + shipment.issuingBank}"></span>
+      </p>
+    </div>
+    <div class="actions">
+      <span class="badge" th:classappend="${shipment.status == 'READY' or shipment.status == 'PAID'} ? 'ok' : (${shipment.status == 'CHECKED' and shipment.criticalCount > 0} ? 'bad' : (${shipment.status == 'SUBMITTED'} ? 'info' : 'warn'))"
+            th:text="${@fmt.label(shipment.status)}">status</span>
+      <a class="btn" th:href="@{/shipments/{id}/report.pdf(id=${shipment.id})}" target="_blank" th:if="${shipment.checked()}">Check report (PDF)</a>
+      <form th:action="@{/shipments/{id}/check(id=${shipment.id})}" method="post" class="inline-form">
+        <button type="submit" class="btn primary">Check again</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="callout bad" th:if="${counts.critical > 0}">
+    <strong th:text="${counts.critical + (counts.critical == 1 ? ' discrepancy' : ' discrepancies') + ' to fix before you present.'}">n</strong>
+    <span>A discrepant presentation is not paid until the buyer waives it</span><span th:if="${terms != null and terms.conditions().discrepancyFee() != null}"
+      th:text="${', and the credit charges ' + terms.conditions().discrepancyFee() + ' for it (47A)'}"></span>.
+  </div>
+  <div class="callout warn" th:if="${counts.critical == 0 and counts.warning > 0}"
+       th:text="${counts.warning + (counts.warning == 1 ? ' point' : ' points') + ' to check: not certain discrepancies, but likely to be queried.'}">warn</div>
+  <div class="callout ok" th:if="${shipment.status == 'READY'}">
+    All documents agree with the credit and with each other. Ready to present to the bank.
+  </div>
+  <div class="callout info" th:if="${shipment.status == 'COLLECTING' and counts.critical == 0 and counts.warning == 0}">
+    <span th:if="${terms == null}">Upload the letter of credit to start: every other document is checked against it.</span>
+    <span th:if="${terms != null and !missing.isEmpty()}" th:text="${'Still needed for the check: ' + #strings.listJoin(missing, ', ') + '.'}">missing</span>
+    <span th:if="${terms != null and missing.isEmpty()}">Upload the commercial invoice to check it against the credit.</span>
+  </div>
+  <div class="callout warn" th:unless="${aiEnabled}">
+    Automatic reading is off (no <span class="mono">ANTHROPIC_API_KEY</span>). SWIFT letters of credit are still read from their text; other documents open a form to type the key fields.
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Credit amount</div>
+      <div class="value" th:text="${shipment.lcAmount != null ? shipment.currency + ' ' + #numbers.formatDecimal(shipment.lcAmount, 1, 'COMMA', 2, 'POINT') : '–'}">USD</div>
+      <div class="note" th:if="${terms != null and terms.tolerancePlus().signum() > 0}" th:text="${'± ' + terms.tolerancePlus() + '% tolerance (39A)'}">tol</div></div>
+    <div class="kpi" th:classappend="${shipment.shippedOn == null and shipment.latestShipment != null and @fmt.daysFromToday(shipment.latestShipment) < 7} ? 'warn'">
+      <div class="label" th:text="${shipment.shippedOn != null ? 'Shipped on' : 'Ship by'}">Ship by</div>
+      <div class="value" th:text="${shipment.shippedOn != null ? @fmt.date(shipment.shippedOn) : @fmt.date(shipment.latestShipment)}">date</div>
+      <div class="note" th:if="${shipment.shippedOn == null and shipment.latestShipment != null}" th:text="${@fmt.relativeDays(shipment.latestShipment)}">in</div></div>
+    <div class="kpi" th:classappend="${shipment.presentationDeadline != null and @fmt.daysFromToday(shipment.presentationDeadline) < 4} ? 'bad'">
+      <div class="label">Present by</div>
+      <div class="value" th:text="${shipment.presentationDeadline != null ? @fmt.date(shipment.presentationDeadline) : '–'}">date</div>
+      <div class="note" th:text="${shipment.presentationDeadline != null ? @fmt.relativeDays(shipment.presentationDeadline) : (terms != null ? terms.presentationDays() + ' days after shipment' : 'after shipment')}">n</div></div>
+    <div class="kpi"><div class="label">LC expires</div>
+      <div class="value" th:text="${shipment.lcExpiry != null ? @fmt.date(shipment.lcExpiry) : '–'}">date</div>
+      <div class="note" th:if="${terms != null and terms.expiryPlace() != null}" th:text="${'in ' + terms.expiryPlace()}">place</div></div>
+  </div>
+
+  <div class="card flush">
+    <div class="card-head"><h2>Documents</h2><span class="muted">PDF or photo; each is read and checked against the others.</span></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Document</th><th>Status</th><th>Read</th><th>Upload or replace</th></tr></thead>
+        <tbody>
+        <tr th:each="t : ${slots}" th:with="d=${docs[t.name()]}">
+          <td><strong th:text="${t.label()}">type</strong>
+            <div th:if="${terms != null and terms.required(t).isPresent()}" class="muted"
+                 th:text="${'46A item ' + terms.required(t).get().number() + (terms.required(t).get().countText().isEmpty() ? '' : ' · ' + terms.required(t).get().countText())}">req</div>
+            <div th:if="${terms != null and t.name() != 'LC' and terms.required(t).isEmpty()}" class="muted">not asked for in 46A</div></td>
+          <td>
+            <span th:if="${d == null}" class="badge">not uploaded</span>
+            <span th:if="${d != null and d.readingStatus == 'MANUAL'}" class="badge warn">type in the fields</span>
+            <span th:if="${d != null and d.readingStatus == 'READ'}" class="badge ok">read</span>
+            <span th:if="${d != null and d.readingStatus == 'PARSED'}" class="badge ok">read from SWIFT text</span>
+            <span th:if="${d != null and d.readingStatus == 'EDITED'}" class="badge info">reviewed</span>
+            <div th:if="${d != null}" class="muted" th:text="${'updated ' + @fmt.ago(d.updatedAt)}">when</div>
+          </td>
+          <td><a th:if="${d != null}" th:href="@{/shipments/{s}/documents/{d}(s=${shipment.id}, d=${d.id})}">Review fields</a></td>
+          <td>
+            <form th:action="@{/shipments/{id}/documents(id=${shipment.id})}" method="post" enctype="multipart/form-data" class="inline-form">
+              <input type="hidden" name="type" th:value="${t.name()}">
+              <input type="file" name="file" accept="application/pdf,image/*" required th:attr="aria-label=${'Upload ' + t.label()}">
+              <button type="submit" class="btn small" th:text="${d == null ? 'Upload' : 'Replace'}">Upload</button>
+            </form>
+          </td>
+        </tr>
+        <tr th:each="o : ${others}">
+          <td><strong>Other document</strong></td><td><span class="badge">kept, not checked</span></td>
+          <td><a th:href="@{/shipments/{s}/documents/{d}(s=${shipment.id}, d=${o.id})}">Open</a></td><td></td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <form th:action="@{/shipments/{id}/documents(id=${shipment.id})}" method="post" enctype="multipart/form-data" class="filters" style="padding: 0.75rem 1rem 1rem">
+      <strong>Not sure which it is?</strong>
+      <input type="file" name="file" accept="application/pdf,image/*" required aria-label="Upload any document">
+      <button type="submit" class="btn small primary">Upload and work it out</button>
+    </form>
+  </div>
+
+  <div class="card" id="findings" th:if="${!open.isEmpty() or !accepted.isEmpty() or !fixed.isEmpty()}">
+    <div class="card-head">
+      <h2>Findings</h2>
+      <div class="actions">
+        <form th:if="${forwarderFixes > 0}" th:action="@{/shipments/{id}/send/forwarder(id=${shipment.id})}" method="post" class="inline-form"
+              th:attr="data-confirm=${'Send ' + forwarderFixes + ' correction(s) to ' + (shipment.forwarderName != null ? shipment.forwarderName : 'the forwarder') + '?'}">
+          <button type="submit" class="btn" th:text="${'Send ' + forwarderFixes + ' to forwarder'}">forwarder</button>
+        </form>
+        <form th:if="${buyerFixes > 0}" th:action="@{/shipments/{id}/send/buyer(id=${shipment.id})}" method="post" class="inline-form"
+              th:attr="data-confirm=${'Email the buyer an amendment request with ' + buyerFixes + ' change(s)?'}">
+          <button type="submit" class="btn" th:text="${'Ask buyer to amend LC (' + buyerFixes + ')'}">buyer</button>
+        </form>
+      </div>
+    </div>
+    <div class="finding" th:each="f : ${open}">
+      <div class="finding-head">
+        <span class="badge" th:classappend="${f.severity == 'CRITICAL'} ? 'bad' : (${f.severity == 'WARNING'} ? 'warn' : '')" th:text="${f.level().label()}">level</span>
+        <strong th:text="${f.title}">title</strong>
+        <span class="chip" th:text="${f.who().label()}">who</span>
+      </div>
+      <p th:text="${f.detail}">detail</p>
+      <div class="compare" th:if="${f.expected != null or f.found != null}">
+        <div><span class="muted">Credit / expected</span><div th:text="${f.expected != null ? f.expected : '–'}">exp</div></div>
+        <div><span class="muted">Documents show</span><div th:text="${f.found != null ? f.found : '–'}">found</div></div>
+      </div>
+      <div class="finding-foot">
+        <small class="muted" th:text="${f.ruleRef}">rule</small>
+        <span th:each="d : ${f.docTypes()}" th:with="doc=${docs[d.name()]}">
+          <a th:if="${doc != null}" class="chip" th:href="@{/shipments/{s}/documents/{d}(s=${shipment.id}, d=${doc.id})}" th:text="${d.shortLabel()}">doc</a>
+        </span>
+        <form th:if="${f.severity != 'INFO'}" th:action="@{/shipments/{id}/findings/{f}(id=${shipment.id}, f=${f.id})}" method="post" class="inline-form right">
+          <input type="hidden" name="accept" value="true">
+          <input type="text" name="note" placeholder="Why, e.g. buyer agreed to waive" aria-label="Note" style="max-width: 220px">
+          <button type="submit" class="btn small">Accept</button>
+        </form>
+      </div>
+    </div>
+    <p class="empty" th:if="${open.isEmpty()}">Nothing open.</p>
+    <details th:if="${!accepted.isEmpty()}">
+      <summary th:text="${accepted.size() + ' accepted'}">accepted</summary>
+      <div class="finding muted" th:each="f : ${accepted}">
+        <strong th:text="${f.title}">t</strong> <span th:if="${f.note != null}" th:text="${'– ' + f.note}"></span>
+        <form th:action="@{/shipments/{id}/findings/{f}(id=${shipment.id}, f=${f.id})}" method="post" class="inline-form">
+          <input type="hidden" name="accept" value="false">
+          <button type="submit" class="btn small">Reopen</button>
+        </form>
+      </div>
+    </details>
+    <details th:if="${!fixed.isEmpty()}">
+      <summary th:text="${fixed.size() + ' fixed since earlier checks'}">fixed</summary>
+      <div class="finding muted" th:each="f : ${fixed}">
+        <span class="badge ok">fixed</span> <span th:text="${f.title}">t</span>
+        <small th:text="${@fmt.ago(f.resolvedAt)}">when</small>
+      </div>
+    </details>
+  </div>
+
+  <div class="grid two">
+    <div class="card flush" th:if="${terms != null}">
+      <div class="card-head"><h2>Documents the credit asks for (46A)</h2></div>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+          <tr th:each="r : ${terms.requiredDocs()}">
+            <td class="muted" th:text="${r.number()}">1</td>
+            <td><strong th:text="${r.kind().label()}">doc</strong>
+              <div class="muted" th:text="${r.countText()}">count</div>
+              <small th:text="${r.text()}">text</small></td>
+            <td class="right nowrap">
+              <span th:if="${r.readAs() == null}" class="badge">prepare</span>
+              <span th:if="${r.readAs() != null and docs[r.readAs().name()] != null}" class="badge ok">uploaded</span>
+              <span th:if="${r.readAs() != null and docs[r.readAs().name()] == null}" class="badge warn">needed</span>
+            </td>
+          </tr>
+          <tr th:if="${terms.requiredDocs().isEmpty()}"><td class="empty">Field 46A was not read.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <form th:action="@{/shipments/{id}(id=${shipment.id})}" th:object="${form}" method="post" class="card stack">
+        <h2>Shipment details</h2>
+        <div class="form-grid">
+          <div class="field wide"><label for="title">Name</label><input type="text" id="title" th:field="*{title}" placeholder="e.g. Black pepper to Hamburg"></div>
+          <div class="field"><label for="plannedPresentation">Presenting to the bank on</label><input type="date" id="plannedPresentation" th:field="*{plannedPresentation}">
+            <span class="hint">Dates are checked against this day; empty means today.</span></div>
+          <div class="field"><label for="buyerEmail">Buyer's email</label><input type="email" id="buyerEmail" th:field="*{buyerEmail}">
+            <span class="hint">For LC amendment requests.</span></div>
+          <div class="field"><label for="forwarderName">Forwarder / CHA</label><input type="text" id="forwarderName" th:field="*{forwarderName}"></div>
+          <div class="field"><label for="forwarderPhone">Forwarder's WhatsApp</label><input type="tel" id="forwarderPhone" th:field="*{forwarderPhone}"></div>
+          <div class="field wide"><label for="forwarderEmail">Forwarder's email</label><input type="email" id="forwarderEmail" th:field="*{forwarderEmail}"></div>
+          <div class="field wide"><label for="notes">Notes</label><textarea id="notes" th:field="*{notes}" rows="2"></textarea></div>
+        </div>
+        <div><button type="submit" class="btn primary">Save</button></div>
+      </form>
+
+      <div class="card">
+        <h2>Status</h2>
+        <div class="actions">
+          <form th:if="${shipment.active()}" th:action="@{/shipments/{id}/status(id=${shipment.id})}" method="post" class="inline-form"
+                th:attr="data-confirm=${shipment.status != 'READY' ? 'Findings are still open. Mark as presented anyway?' : null}">
+            <input type="hidden" name="status" value="SUBMITTED"><button type="submit" class="btn ok">Presented to the bank</button>
+          </form>
+          <form th:if="${shipment.status == 'SUBMITTED'}" th:action="@{/shipments/{id}/status(id=${shipment.id})}" method="post" class="inline-form">
+            <input type="hidden" name="status" value="PAID"><button type="submit" class="btn ok">Payment received</button>
+          </form>
+          <form th:if="${!shipment.active()}" th:action="@{/shipments/{id}/status(id=${shipment.id})}" method="post" class="inline-form">
+            <input type="hidden" name="status" value="REOPEN"><button type="submit" class="btn">Reopen</button>
+          </form>
+          <form th:if="${shipment.active()}" th:action="@{/shipments/{id}/status(id=${shipment.id})}" method="post" class="inline-form" data-confirm="Cancel this shipment?">
+            <input type="hidden" name="status" value="CANCELLED"><button type="submit" class="btn danger">Cancel</button>
+          </form>
+        </div>
+        <p class="muted" th:if="${shipment.submittedOn != null}" th:text="${'Presented on ' + @fmt.date(shipment.submittedOn)}">presented</p>
+      </div>
+
+      <div class="card" th:if="${!messages.isEmpty()}">
+        <h2>Messages sent</h2>
+        <table>
+          <tbody>
+          <tr th:each="m : ${messages}">
+            <td class="nowrap" th:text="${@fmt.dateTime(m.createdAt)}">t</td>
+            <td th:text="${m.isWhatsApp() ? 'WhatsApp ' + @fmt.phone(m.recipient) : 'Email ' + m.recipient}">to</td>
+            <td><span class="badge" th:classappend="${m.failed()} ? 'bad' : (${m.status == 'SIMULATED'} ? 'info' : 'ok')" th:text="${m.status}">s</span></td>
+          </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

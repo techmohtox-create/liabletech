@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(${docType.label()}, ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="breadcrumb"><a th:href="@{/shipments}">Shipments</a> / <a th:href="@{/shipments/{id}(id=${shipment.id})}" th:text="${shipment.displayName()}">shipment</a> /</div>
+  <div class="page-head">
+    <div>
+      <h1 th:text="${docType.label()}">Document</h1>
+      <p class="sub">
+        <span th:if="${doc.readingStatus == 'READ'}" th:text="${'Read automatically' + (doc.confidence != null ? ' (confidence ' + #numbers.formatPercent(doc.confidence, 1, 0) + ')' : '') + '. Compare with the scan and correct anything misread.'}">read</span>
+        <span th:if="${doc.readingStatus == 'PARSED'}">Read from the SWIFT message text.</span>
+        <span th:if="${doc.readingStatus == 'EDITED'}">Reviewed.</span>
+        <span th:if="${doc.readingStatus == 'MANUAL'}" th:text="${doc.readingNote != null ? doc.readingNote : 'Type in the key fields.'}">manual</span>
+      </p>
+    </div>
+    <div class="actions">
+      <form th:if="${file != null and aiEnabled}" th:action="@{/shipments/{s}/documents/{d}/reread(s=${shipment.id}, d=${doc.id})}" method="post" class="filters">
+        <select name="type" aria-label="Read as">
+          <option th:each="t : ${types}" th:value="${t.name()}" th:text="${'Read as ' + t.label()}" th:selected="${t == docType}">t</option>
+        </select>
+        <button type="submit" class="btn small">Read again</button>
+      </form>
+      <form th:action="@{/shipments/{s}/documents/{d}/delete(s=${shipment.id}, d=${doc.id})}" method="post" class="inline-form" data-confirm="Remove this document from the shipment?">
+        <button type="submit" class="btn small danger">Remove</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="callout bad" th:each="f : ${findings}" th:if="${f.severity == 'CRITICAL'}">
+    <strong th:text="${f.title}">t</strong>: <span th:text="${f.detail}">d</span>
+  </div>
+  <div class="callout warn" th:each="f : ${findings}" th:if="${f.severity == 'WARNING'}">
+    <strong th:text="${f.title}">t</strong>: <span th:text="${f.detail}">d</span>
+  </div>
+
+  <div class="split">
+    <div class="doc-view" th:if="${file != null}">
+      <img th:if="${file.image}" th:src="@{/files/{id}(id=${file.id})}" alt="Document">
+      <iframe th:if="${file.pdf}" th:src="@{/files/{id}(id=${file.id})}" title="Document"></iframe>
+      <a class="btn small" th:href="@{/files/{id}(id=${file.id}, download=true)}">Download</a>
+    </div>
+    <div>
+      <form th:if="${!fields.isEmpty()}" th:action="@{/shipments/{s}/documents/{d}(s=${shipment.id}, d=${doc.id})}" method="post" class="card stack">
+        <div class="form-grid">
+          <div class="field" th:each="f : ${fields}" th:classappend="${f.multiline()} ? 'wide'">
+            <label th:for="${'f-' + f.name()}" th:text="${f.label()}">label</label>
+            <textarea th:if="${f.multiline()}" th:id="${'f-' + f.name()}" th:name="${'f.' + f.name()}" rows="3" th:text="${f.value()}"></textarea>
+            <input th:unless="${f.multiline()}" type="text" th:id="${'f-' + f.name()}" th:name="${'f.' + f.name()}" th:value="${f.value()}"
+                   th:placeholder="${f.date() ? 'YYYY-MM-DD' : ''}">
+          </div>
+        </div>
+        <div class="table-wrap" th:if="${table != null}">
+          <table>
+            <thead><tr><th th:each="label : ${table.labels()}" th:text="${label}">col</th></tr></thead>
+            <tbody>
+            <tr th:each="row, stat : ${table.rows()}">
+              <td th:each="col : ${table.columns()}">
+                <input type="text" th:name="${'l.' + stat.index + '.' + col}" th:value="${row[col]}" th:attr="aria-label=${col}"
+                       th:style="${col == 'description' ? 'min-width: 220px' : 'min-width: 90px'}">
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">Dates as YYYY-MM-DD, amounts and weights as plain numbers. Saving checks the shipment again.</p>
+        <div class="actions"><button type="submit" class="btn primary">Save and check</button></div>
+      </form>
+      <div class="card" th:if="${fields.isEmpty()}">
+        <p>This document is kept with the shipment but not checked.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

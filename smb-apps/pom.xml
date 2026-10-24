@@ -19,6 +19,7 @@
 		<module>platform</module>
 		<module>freight-chaser</module>
 		<module>material-tracker</module>
+		<module>export-doc-checker</module>
 	</modules>
 
 	<properties>

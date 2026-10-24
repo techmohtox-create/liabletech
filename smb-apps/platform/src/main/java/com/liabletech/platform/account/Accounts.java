@@ -54,6 +54,10 @@ public class Accounts {
 		return keys.getKeyAs(Long.class);
 	}
 
+	public void setPlan(long id, String planCode) {
+		jdbc.sql("UPDATE account SET plan_code = ? WHERE id = ?").params(planCode, id).update();
+	}
+
 	public void updateProfile(long id, ProfileForm form) {
 		jdbc.sql("""
 				UPDATE account SET name = :name, owner_name = :ownerName, phone = :phone, email = :email,

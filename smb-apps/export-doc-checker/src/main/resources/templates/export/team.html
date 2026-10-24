@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Team', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>WhatsApp senders</h1>
+      <p class="sub">These numbers can forward letters of credit, invoices, packing lists and bills of lading to be checked.</p>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="card flush">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Name</th><th>WhatsApp</th><th>Active</th></tr></thead>
+          <tbody>
+          <tr th:each="s : ${senders}">
+            <td th:text="${s.name}">name</td>
+            <td class="nowrap" th:text="${@fmt.phone(s.phone)}">phone</td>
+            <td>
+              <form th:action="@{/team/{id}/active(id=${s.id})}" method="post" class="inline-form">
+                <label class="check"><input type="checkbox" name="active" value="true" th:checked="${s.active}" data-submit-on-change> Can send</label>
+              </form>
+            </td>
+          </tr>
+          <tr th:if="${senders.isEmpty()}"><td colspan="3" class="empty">Nobody yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <form th:action="@{/team}" method="post" class="card stack">
+      <h2>Add a sender</h2>
+      <div class="field"><label for="name">Name</label><input type="text" id="name" name="name" required placeholder="e.g. Documentation executive"></div>
+      <div class="field"><label for="phone">WhatsApp number</label><input type="tel" id="phone" name="phone" required placeholder="98xxxxxxxx"></div>
+      <div><button type="submit" class="btn primary">Add</button></div>
+      <p class="hint">Forward the LC first. Documents that quote the LC number join its shipment; others join the latest shipment still missing that document.</p>
+    </form>
+  </div>
+</div>
+</body>
+</html>

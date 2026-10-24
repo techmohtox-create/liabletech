@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout('Dashboard', ~{::content})}">
+<body>
+<div th:fragment="content">
+  <div class="page-head">
+    <div>
+      <h1>Export documents</h1>
+      <p class="sub">Letters of credit and their documents, checked before the bank sees them.</p>
+    </div>
+    <div class="actions">
+      <form th:action="@{/shipments}" method="post" class="inline-form">
+        <button type="submit" class="btn primary">Add a shipment</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" th:classappend="${discrepancies > 0} ? 'bad'">
+      <div class="label">Discrepancies to fix</div>
+      <div class="value" th:text="${discrepancies}">0</div>
+      <div class="note" th:text="${toFix == 0 ? 'none open' : 'on ' + toFix + (toFix == 1 ? ' shipment' : ' shipments')}">n</div>
+    </div>
+    <div class="kpi ok">
+      <div class="label">Ready for the bank</div>
+      <div class="value" th:text="${ready}">0</div>
+      <div class="note">every document agrees</div>
+    </div>
+    <div class="kpi" th:classappend="${next != null and @fmt.daysFromToday(next.date) <= 3} ? 'warn'">
+      <div class="label">Next deadline</div>
+      <div class="value" th:text="${next != null ? @fmt.shortDate(next.date) : '–'}">date</div>
+      <div class="note" th:text="${next != null ? next.label + ' · ' + nextShipment.displayName() : 'nothing due'}">what</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Caught this month</div>
+      <div class="value" th:text="${caught}">0</div>
+      <div class="note">discrepancies fixed before presenting</div>
+    </div>
+    <a class="kpi" th:href="@{/settings}">
+      <div class="label">This month</div>
+      <div class="value" th:text="${@fmt.rupees0(plan.monthlyAmount)}">₹</div>
+      <div class="note" th:text="${plan.details[0]}">plan</div>
+    </a>
+  </div>
+
+  <div class="card flush">
+    <div class="card-head"><h2>Shipments in progress</h2><a th:href="@{/shipments}">All</a></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Shipment</th><th>LC</th><th class="num">Amount</th><th>Next deadline</th><th>Check</th></tr></thead>
+        <tbody>
+        <tr th:each="s : ${active}" th:attr="data-href=@{/shipments/{id}(id=${s.id})}" class="row-link" th:with="d=${s.nextDeadline(today)}">
+          <td><a th:href="@{/shipments/{id}(id=${s.id})}" th:text="${s.displayName()}">shipment</a><br>
+            <small th:text="${s.reference + (s.buyerName != null ? ' · ' + s.buyerName : '')}">ref</small></td>
+          <td class="mono" th:text="${s.lcNumber != null ? s.lcNumber : '–'}">lc</td>
+          <td class="num" th:text="${s.lcAmount != null ? s.currency + ' ' + #numbers.formatDecimal(s.lcAmount, 1, 'COMMA', 2, 'POINT') : '–'}">amt</td>
+          <td><span th:if="${d != null}" th:text="${d.label + ' ' + @fmt.shortDate(d.date)}">date</span>
+            <br th:if="${d != null}"><small th:if="${d != null}" th:classappend="${@fmt.daysFromToday(d.date) <= 3} ? 'err'" th:text="${@fmt.relativeDays(d.date)}">in</small></td>
+          <td>
+            <span th:if="${s.criticalCount > 0}" class="badge bad" th:text="${s.criticalCount + (s.criticalCount == 1 ? ' discrepancy' : ' discrepancies')}">n</span>
+            <span th:if="${s.criticalCount == 0 and s.warningCount > 0}" class="badge warn" th:text="${s.warningCount + ' to check'}">n</span>
+            <span th:if="${s.status == 'READY'}" class="badge ok">ready</span>
+            <span th:if="${s.status == 'COLLECTING' and s.criticalCount == 0 and s.warningCount == 0}" class="badge">waiting for documents</span>
+          </td>
+        </tr>
+        <tr th:if="${active.isEmpty()}"><td colspan="5" class="empty">No shipments in progress. Add one, or send the LC to the WhatsApp number.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card flush" th:if="${!recent.isEmpty()}">
+    <div class="card-head"><h2>Recently presented</h2></div>
+    <div class="table-wrap">
+      <table>
+        <tbody>
+        <tr th:each="s : ${recent}" th:attr="data-href=@{/shipments/{id}(id=${s.id})}" class="row-link">
+          <td><a th:href="@{/shipments/{id}(id=${s.id})}" th:text="${s.displayName()}">s</a></td>
+          <td class="mono" th:text="${s.lcNumber}">lc</td>
+          <td><span class="badge" th:classappend="${s.status == 'PAID'} ? 'ok' : 'info'" th:text="${@fmt.label(s.status)}">st</span></td>
+          <td class="right muted" th:text="${s.submittedOn != null ? 'presented ' + @fmt.date(s.submittedOn) : ''}">when</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>

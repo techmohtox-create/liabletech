@@ -17,7 +17,15 @@ public interface PlanCatalog {
 
 	PlanSummary summarize(Account account);
 
+	/** Plans the owner can switch between on the settings page; empty when the app has one plan. */
+	default List<PlanOption> options() {
+		return List.of();
+	}
+
 	record PlanSummary(String planName, String price, BigDecimal monthlyAmount, List<String> details) {
+	}
+
+	record PlanOption(String code, String name, String price) {
 	}
 
 }

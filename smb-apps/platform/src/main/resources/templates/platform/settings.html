@@ -89,6 +89,13 @@
         <ul class="muted" th:if="${!plan.details.isEmpty()}">
           <li th:each="line : ${plan.details}" th:text="${line}">detail</li>
         </ul>
+        <form th:if="${!planOptions.isEmpty() and currentUser.isOwner()}" th:action="@{/settings/plan}" method="post" class="filters">
+          <select name="planCode" aria-label="Plan">
+            <option th:each="o : ${planOptions}" th:value="${o.code}" th:selected="${o.code == account.planCode}"
+                    th:text="${o.name + ' · ' + o.price}">plan</option>
+          </select>
+          <button type="submit" class="btn small">Change plan</button>
+        </form>
       </div>
 
       <div class="card">
