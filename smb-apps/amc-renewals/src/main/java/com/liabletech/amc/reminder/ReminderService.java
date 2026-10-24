@@ -212,7 +212,7 @@ public class ReminderService {
 		OutboundMessage message = messenger.send(Outgoing.whatsApp(accountId, customer.phone(), text)
 			.about("contract", contract.id())
 			.template("amc_renewal_reminder", customer.greetingName().isEmpty() ? "Customer" : customer.greetingName(),
-					appliance.describe(), contract.endsOn().toString(), IndianMoney.rupees(price), link));
+					appliance.describe(), ReminderMessages.date(contract.endsOn()), IndianMoney.rupees(price), link));
 		reminders.record(accountId, contract.id(), Reminders.RENEWAL, offset, contract.endsOn().plusDays(offset),
 				OffsetDateTime.now(clock), message.id());
 		return message;

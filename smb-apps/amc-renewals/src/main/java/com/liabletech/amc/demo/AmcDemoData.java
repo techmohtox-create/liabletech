@@ -500,7 +500,7 @@ public class AmcDemoData implements ApplicationRunner {
 					ReminderMessages.renewal(business, customer, appliance, contract, price, dueOn, link))
 				.about("contract", contract.id())
 				.template("amc_renewal_reminder", customer.greetingName(), appliance.describe(),
-						contract.endsOn().toString(), IndianMoney.rupees(price), link), when);
+						ReminderMessages.date(contract.endsOn()), IndianMoney.rupees(price), link), when);
 			reminders.record(account, contract.id(), "RENEWAL", offset, dueOn, when, message.id());
 		}
 	}

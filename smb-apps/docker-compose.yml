@@ -1,0 +1,31 @@
+# Optional services for trying the apps against PostgreSQL and a local mailbox. The apps themselves
+# run with `java -jar` (see README.md); without these they use an H2 file and record email in the outbox.
+#
+#   docker compose up -d
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/smbapps \
+#   SPRING_DATASOURCE_USERNAME=smbapps SPRING_DATASOURCE_PASSWORD=smbapps \
+#   SPRING_MAIL_HOST=localhost SPRING_MAIL_PORT=1025 \
+#   java -jar freight-chaser/target/freight-chaser.jar
+#
+# Each app keeps its own tables; run each against its own database (create more with
+# `docker compose exec postgres createdb -U smbapps <name>`), since the apps share table names.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: smbapps
+      POSTGRES_USER: smbapps
+      POSTGRES_PASSWORD: smbapps
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  postgres-data:

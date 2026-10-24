@@ -21,6 +21,11 @@ public final class ReminderMessages {
 	private ReminderMessages() {
 	}
 
+	/** "2 Nov 2026", as dates appear in every message. */
+	public static String date(LocalDate date) {
+		return DATE.format(date);
+	}
+
 	/** A renewal reminder, worded for how far the date is: before, on or after the end of the contract. */
 	public static String renewal(Account account, Customer customer, Appliance appliance, Contract contract,
 			BigDecimal price, LocalDate today, String link) {
